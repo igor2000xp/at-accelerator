@@ -11,10 +11,6 @@ export class ApiService {
   public $apiObserver = this.apiSubject.asObservable();
   constructor(private http: HttpClient) {
     this.getShows();
-    // this.$apiObserver = this.http.get<ApiInterface>('search').pipe(
-    //   map(response => response.tv_shows),
-    //   catchError(err => this.handleError(err))
-    // );
   }
 
   getShows() {
@@ -25,11 +21,6 @@ export class ApiService {
         catchError(err => this.handleError(err))
       )
       .subscribe(data => this.apiSubject.next(data));
-    // return this.$apiObserver;
-    // return this.http.get<ApiInterface>('search').pipe(
-    //   map(response => response.tv_shows),
-    //   catchError(err => this.handleError(err))
-    // );
   }
 
   getUpdatedShows(): Observable<TvShow[]> {
@@ -44,15 +35,6 @@ export class ApiService {
         catchError(err => this.handleError(err))
       )
       .subscribe((data: TvShow[]) => this.apiSubject.next(data));
-    // this.$apiObserver = this.http.get<ApiInterface>(`search?q=${searchTerm}&page=1 `).pipe(
-    //   map(response => response.tv_shows),
-    //   catchError(err => this.handleError(err))
-    // );
-    // return this.$apiObserver;
-    // return this.http.get<ApiInterface>(`search?q=${searchTerm}&page=1 `).pipe(
-    //   map(response => response.tv_shows),
-    //   catchError(err => this.handleError(err))
-    // );
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {
@@ -65,6 +47,6 @@ export class ApiService {
       console.error(`Backend returned code ${error.status}, ` + `body was: ${error.error}`);
     }
     // Return an observable with a user-facing error message.
-    return throwError('Something bad happened; please try again later.');
+    return throwError(() => new Error('Something bad happened; please try again later.'));
   }
 }
