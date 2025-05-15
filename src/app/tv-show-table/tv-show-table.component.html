@@ -9,6 +9,11 @@
         <th>Actions</th>
       </tr>
     </thead>
+    @if (tv_shows.length === 0) {
+      <div class="spin-wrapper">
+        <div class="spinner secondary spin" role="progressbar"></div>
+      </div>
+    }
     @for (tv_show of tv_shows; track tv_show.id) {
       <tbody>
         <tr>

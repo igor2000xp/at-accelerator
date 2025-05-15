@@ -1,0 +1,14 @@
+.spin-wrapper {
+  padding-top: 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spin {
+  margin: 0 auto;
+  height: 50px;
+  width: 50px;
+}
