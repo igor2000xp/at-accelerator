@@ -1,4 +1,4 @@
-import { Directive, ElementRef, HostListener, inject, Input, OnInit } from '@angular/core';
+import { Directive, ElementRef, HostListener, inject, Input, OnInit, Renderer2 } from '@angular/core';
 import { FavCrudService } from '../services/fav-crud.service';
 import { TvShow } from 'src/app/models/api-interface';
 
@@ -7,32 +7,39 @@ import { TvShow } from 'src/app/models/api-interface';
   standalone: true,
 })
 export class ToggleFavDirective implements OnInit {
-  private favCrudService = inject(FavCrudService);
-  private elementRef = inject(ElementRef);
   @Input('appToggleFav') data!: TvShow;
+  private favCrudService = inject(FavCrudService);
+  private renderer = inject(Renderer2);
+  private elementRef = inject(ElementRef);
+  private favorites: TvShow[] = [];
+  private exists = false;
 
   ngOnInit() {
+    this.favorites = this.favCrudService.getLocalStorageFavorites();
+    this.exists = this.favorites.some(fav => fav.id === this.data.id);
     this.updateHighlight();
   }
 
   @HostListener('click')
   toggleFav() {
-    const favorites = this.favCrudService.getLocalStorageFavorites();
-    const exists = favorites.some(fav => fav.id === this.data.id);
-
-    if (exists) {
+    if (this.exists) {
       this.favCrudService.removeFromFavorites(this.data);
-      console.log('removeFromFavorites', this.data);
     } else {
       this.favCrudService.addToFavorites(this.data);
-      console.log('addToFavorites', this.data);
     }
+    this.exists = !this.exists;
     this.updateHighlight();
   }
 
   private updateHighlight() {
-    const favorites = this.favCrudService.getLocalStorageFavorites();
-    const exists = favorites.some(fav => fav.id === this.data.id);
-    this.elementRef.nativeElement.classList.toggle('highlight', exists);
+    if (this.exists) {
+      this.renderer.addClass(this.elementRef.nativeElement, 'highlight');
+    } else {
+      this.renderer.removeClass(this.elementRef.nativeElement, 'highlight');
+    }
+    // this is the original way to toggle the highlight but it's not safe
+    // because it's not controlled by the Angular
+
+    // this.elementRef.nativeElement.classList.toggle('highlight', exists);
   }
 }
