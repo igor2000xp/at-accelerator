@@ -4,7 +4,6 @@ import { Injectable } from '@angular/core';
   providedIn: 'root',
 })
 export class LocalStorageService {
-  // constructor() { }
   setFavoritesStore<T>(key: string, obj: T) {
     localStorage.setItem(key, JSON.stringify(obj));
   }
