@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { FavToggleService } from './fav-toggle.service';
+import { FavCrudService } from './fav-crud.service';
 
-describe('FavToggleService', () => {
-  let service: FavToggleService;
+describe('FavCrudService', () => {
+  let service: FavCrudService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(FavToggleService);
+    service = TestBed.inject(FavCrudService);
   });
 
   it('should be created', () => {

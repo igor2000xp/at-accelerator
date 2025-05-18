@@ -5,10 +5,8 @@ import { TvShow } from 'src/app/models/api-interface';
 @Injectable({
   providedIn: 'root',
 })
-export class FavToggleService {
+export class FavCrudService {
   private localStorageService = inject(LocalStorageService);
-
-  // constructor() { }
 
   getLocalStorageFavorites(): TvShow[] {
     return this.localStorageService.getFavoritesStore<TvShow[]>('favorites') || [];
