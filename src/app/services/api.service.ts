@@ -7,34 +7,19 @@ import { Injectable } from '@angular/core';
   providedIn: 'root',
 })
 export class ApiService {
-  private apiSubject = new BehaviorSubject<TvShow[]>([]);
-  public $apiObserver = this.apiSubject.asObservable();
+  public $searchObserver: Observable<TvShow[]>;
+
+  private searchSubject = new BehaviorSubject<TvShow[]>([]);
   constructor(private http: HttpClient) {
-    this.getShows();
+    this.$searchObserver = this.getSearchesResults();
   }
 
-  getShows() {
-    this.http
-      .get<ApiInterface>('search')
-      .pipe(
-        map(response => response.tv_shows),
-        catchError(err => this.handleError(err))
-      )
-      .subscribe(data => this.apiSubject.next(data));
-  }
-
-  getUpdatedShows(): Observable<TvShow[]> {
-    return this.$apiObserver;
-  }
-
-  getSearchesResults(searchString: string) {
-    this.http
-      .get<ApiInterface>(`search?q=${searchString}&page=1 `)
-      .pipe(
-        map((response: ApiInterface) => response.tv_shows),
-        catchError(err => this.handleError(err))
-      )
-      .subscribe((data: TvShow[]) => this.apiSubject.next(data));
+  getSearchesResults(searchString = '') {
+    this.$searchObserver = this.http.get<ApiInterface>(`search?q=${searchString}&page=1 `).pipe(
+      map((response: ApiInterface) => response.tv_shows),
+      catchError(err => this.handleError(err))
+    );
+    return this.$searchObserver;
   }
 
   private handleError(error: HttpErrorResponse): Observable<never> {

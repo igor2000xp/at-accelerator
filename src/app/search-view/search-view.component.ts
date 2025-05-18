@@ -3,6 +3,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../services/api.service';
+import { Observable } from 'rxjs';
+import { TvShow } from '../models/api.interface';
 
 @Component({
   selector: 'app-search-view',
@@ -12,12 +14,14 @@ import { ApiService } from '../services/api.service';
   styleUrls: ['./search-view.component.css'],
 })
 export class SearchViewComponent {
-  constructor(private apiService: ApiService) {}
+  $dataSearch: Observable<TvShow[]>;
 
-  onSubmit(event: Event) {
+  constructor(private apiService: ApiService) {
+    this.$dataSearch = this.apiService.getSearchesResults();
+  }
+
+  onClickHandler(searchString = '', event: Event) {
     event.preventDefault();
-    const form = event.target as HTMLFormElement;
-    const input: string = (form.querySelector('#name') as HTMLInputElement).value;
-    this.apiService.getSearchesResults(input);
+    this.$dataSearch = this.apiService.getSearchesResults(searchString);
   }
 }
