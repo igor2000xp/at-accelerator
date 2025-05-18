@@ -12,15 +12,17 @@ import { ApiService } from '../api/services/api.service';
   styleUrls: ['./search-view.component.css'],
 })
 export class SearchViewComponent {
-  protected dataSearch!: Signal<TvShow[]>;
+  protected searchData!: Signal<TvShow[]>;
   private api = inject(ApiService);
+  protected isLoading = this.api.isLoading;
 
   constructor() {
     this.onClickHandler();
+    console.log('constructor search-view.component.ts');
   }
 
   onClickHandler(search = '', event?: Event) {
     event?.preventDefault();
-    this.dataSearch = this.api.getTvShows(search);
+    this.searchData = this.api.getTvShows(search);
   }
 }

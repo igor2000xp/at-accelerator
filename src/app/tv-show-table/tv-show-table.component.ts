@@ -10,5 +10,6 @@ import { TvShow } from '../models/api-interface';
   styleUrls: ['./tv-show-table.component.css'],
 })
 export class TvShowTableComponent {
-  @Input() data!: Signal<TvShow[]>;
+  @Input() searchData!: Signal<TvShow[]>;
+  @Input() isLoading!: Signal<boolean>;
 }
