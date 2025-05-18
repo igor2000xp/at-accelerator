@@ -1,46 +1,33 @@
 <table>
-  <thead>
-  <tr>
-    <th>Name</th>
-    <th>Country</th>
-    <th>Year started</th>
-    <th>Status</th>
-    <th>Actions</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td data-label="Name">Alone</td>
-    <td data-label="Country">US</td>
-    <td data-label="Year started">2015</td>
-    <td data-label="Status">Running</td>
-    <td data-label="Actions">
-      <span class="icon-info"></span>
-      <span class="icon-bookmark"></span>
-      <span class="icon-link"></span>
-    </td>
-  </tr>
-  <tr>
-    <td data-label="Name">Black Mirror</td>
-    <td data-label="Country">UK</td>
-    <td data-label="Year started">2011</td>
-    <td data-label="Status">To Be Determined</td>
-    <td data-label="Actions">
-      <span class="icon-info"></span>
-      <span class="icon-bookmark highlight"></span>
-      <span class="icon-link"></span>
-    </td>
-  </tr>
-  <tr>
-    <td data-label="Name">True Detective</td>
-    <td data-label="Country">US</td>
-    <td data-label="Year started">2014</td>
-    <td data-label="Status">Running</td>
-    <td data-label="Actions">
-      <span class="icon-info"></span>
-      <span class="icon-bookmark"></span>
-      <span class="icon-link"></span>
-    </td>
-  </tr>
-  </tbody>
+  @if ($tv_shows | async; as tv_shows) {
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Country</th>
+        <th>Status</th>
+        <th>Year started</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    @if (tv_shows.length === 0) {
+      <div class="spin-wrapper">
+        <div class="spinner secondary spin" role="progressbar"></div>
+      </div>
+    }
+    @for (tv_show of tv_shows; track tv_show.id) {
+      <tbody>
+        <tr>
+          <td data-label="Name">{{ tv_show.name }}</td>
+          <td data-label="Country">{{ tv_show.country }}</td>
+          <td data-label="Year started">{{ tv_show.start_date | date: 'yyyy' }}</td>
+          <td data-label="Status">{{ tv_show.status }}</td>
+          <td data-label="Actions">
+            <span class="icon-info"></span>
+            <span class="icon-bookmark highlight"></span>
+            <span class="icon-link"></span>
+          </td>
+        </tr>
+      </tbody>
+    }
+  }
 </table>

@@ -1,19 +1,20 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
+      <!-- <form (ngSubmit)="onSubmit($event)" #searchForm="ngForm"> -->
       <form>
         <fieldset>
           <legend>TV Show Search</legend>
           <label for="name">Name</label>
-          <input type="text" id="name" placeholder="Name of the show"/>
-          <button class="primary">Search</button>
+          <input type="text" id="name" placeholder="Name of the show" #inputSearch />
+          <button class="primary" (click)="onClickHandler(inputSearch.value, $event)">Search</button>
         </fieldset>
       </form>
     </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-12">
+      <app-tv-show-table [$tv_shows]="$dataSearch"></app-tv-show-table>
     </div>
-    <div class="row">
-      <div class="col-sm-12">
-        <app-tv-show-table></app-tv-show-table>
-      </div>
   </div>
 </div>
