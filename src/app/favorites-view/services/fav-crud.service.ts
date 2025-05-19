@@ -1,6 +1,7 @@
 import { inject, Injectable, Signal, signal } from '@angular/core';
 import { LocalStorageService } from './local-storage.service';
 import { TvShow } from 'src/app/models/api-interface';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -9,13 +10,14 @@ export class FavCrudService {
   private favData = signal<TvShow[]>([]);
   public favDataSignal = this.favData.asReadonly();
   private localStorageService = inject(LocalStorageService);
+  private readonly KEY = environment.FAVORITES_KEY;
 
   constructor() {
     this.loadFavorites();
   }
 
   private loadFavorites(): void {
-    const stored = this.localStorageService.getFavoritesStore<TvShow[]>('favorites') || [];
+    const stored = this.localStorageService.getFavoritesStore<TvShow[]>(this.KEY) || [];
     this.favData.set(stored);
   }
 
@@ -30,7 +32,7 @@ export class FavCrudService {
     // this.localStorageService.setFavoritesStore('favorites', favorites());
     const currentFavorites = this.favData();
     this.favData.set([...currentFavorites, show]);
-    this.localStorageService.setFavoritesStore('favorites', this.favData());
+    this.localStorageService.setFavoritesStore(this.KEY, this.favData());
   }
 
   removeFromFavorites(show: TvShow): void {
@@ -40,11 +42,11 @@ export class FavCrudService {
     const currentFavorites = this.favData();
     const newFavorites = currentFavorites.filter(item => item.id !== show.id);
     this.favData.set(newFavorites);
-    this.localStorageService.setFavoritesStore('favorites', this.favData());
+    this.localStorageService.setFavoritesStore(this.KEY, this.favData());
   }
 
   emptyFavorites(): void {
     this.favData.set([]);
-    this.localStorageService.cleanFavoritesStore('favorites');
+    this.localStorageService.cleanFavoritesStore(this.KEY);
   }
 }

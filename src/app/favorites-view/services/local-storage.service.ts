@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root',
 })
 export class LocalStorageService {
-  setFavoritesStore<T>(key: string, obj: T) {
+  setFavoritesStore<T>(key: string, obj: T): void {
     localStorage.setItem(key, JSON.stringify(obj));
   }
 
@@ -13,7 +13,7 @@ export class LocalStorageService {
     return item ? JSON.parse(item) : null;
   }
 
-  cleanFavoritesStore(key: string) {
+  cleanFavoritesStore(key: string): void {
     localStorage.removeItem(key);
   }
 }

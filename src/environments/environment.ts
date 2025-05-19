@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
   apiUrl: 'https://www.episodate.com/api/',
+  FAVORITES_KEY: 'favorites',
 };
