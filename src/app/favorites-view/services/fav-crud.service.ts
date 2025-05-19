@@ -45,6 +45,6 @@ export class FavCrudService {
 
   emptyFavorites(): void {
     this.favData.set([]);
-    this.localStorageService.setFavoritesStore('favorites', []);
+    this.localStorageService.cleanFavoritesStore('favorites');
   }
 }

@@ -12,4 +12,8 @@ export class LocalStorageService {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : null;
   }
+
+  cleanFavoritesStore(key: string) {
+    localStorage.removeItem(key);
+  }
 }

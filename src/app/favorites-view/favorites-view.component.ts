@@ -13,4 +13,8 @@ export class FavoritesViewComponent {
 
   protected favData = this.favCrudService.getLocalStorageFavorites();
   protected isLoading = signal<boolean>(false).asReadonly();
+
+  onClickHandler() {
+    this.favCrudService.emptyFavorites();
+  }
 }
