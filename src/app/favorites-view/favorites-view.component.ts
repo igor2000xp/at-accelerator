@@ -11,7 +11,8 @@ import { FavCrudService } from './services/fav-crud.service';
 export class FavoritesViewComponent {
   private favCrudService = inject(FavCrudService);
 
-  protected favData = this.favCrudService.getLocalStorageFavorites();
+  // protected favData = this.favCrudService.getLocalStorageFavorites();
+  protected favData = this.favCrudService.favDataSignal;
   protected isLoading = signal<boolean>(false).asReadonly();
 
   onClickHandler() {

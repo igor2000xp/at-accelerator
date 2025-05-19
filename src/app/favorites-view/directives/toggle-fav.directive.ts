@@ -15,7 +15,7 @@ export class ToggleFavDirective implements OnInit {
   private exists = false;
 
   ngOnInit() {
-    this.favorites = this.favCrudService.getLocalStorageFavorites();
+    this.favorites = this.favCrudService.favDataSignal;
     this.exists = this.favorites().some(fav => fav.id === this.data.id);
     this.updateHighlight();
   }
@@ -32,7 +32,7 @@ export class ToggleFavDirective implements OnInit {
   }
 
   private updateHighlight() {
-    this.favCrudService.getLocalStorageFavorites();
+    this.favCrudService.favDataSignal();
     if (this.exists) {
       this.renderer.addClass(this.elementRef.nativeElement, 'highlight');
     } else {
