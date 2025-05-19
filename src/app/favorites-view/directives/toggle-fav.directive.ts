@@ -11,6 +11,7 @@ export class ToggleFavDirective implements OnInit {
   private favCrudService = inject(FavCrudService);
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
+
   private favorites: Signal<TvShow[]> = signal<TvShow[]>([]);
   private exists = false;
 
