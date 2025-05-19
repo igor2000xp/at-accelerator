@@ -1,1 +1,12 @@
-<p>favorites-view works!</p>
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+      <legend>Favorites TV Shows</legend>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-12">
+      <app-tv-show-table [searchData]="favData" [isLoading]="isLoading"></app-tv-show-table>
+    </div>
+  </div>
+</div>

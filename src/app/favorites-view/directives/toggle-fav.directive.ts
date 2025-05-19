@@ -1,4 +1,4 @@
-import { Directive, ElementRef, HostListener, inject, Input, OnInit, Renderer2 } from '@angular/core';
+import { Directive, ElementRef, HostListener, inject, Input, OnInit, Renderer2, signal, Signal } from '@angular/core';
 import { FavCrudService } from '../services/fav-crud.service';
 import { TvShow } from 'src/app/models/api-interface';
 
@@ -11,12 +11,12 @@ export class ToggleFavDirective implements OnInit {
   private favCrudService = inject(FavCrudService);
   private renderer = inject(Renderer2);
   private elementRef = inject(ElementRef);
-  private favorites: TvShow[] = [];
+  private favorites: Signal<TvShow[]> = signal<TvShow[]>([]);
   private exists = false;
 
   ngOnInit() {
     this.favorites = this.favCrudService.getLocalStorageFavorites();
-    this.exists = this.favorites.some(fav => fav.id === this.data.id);
+    this.exists = this.favorites().some(fav => fav.id === this.data.id);
     this.updateHighlight();
   }
 
@@ -32,6 +32,7 @@ export class ToggleFavDirective implements OnInit {
   }
 
   private updateHighlight() {
+    this.favCrudService.getLocalStorageFavorites();
     if (this.exists) {
       this.renderer.addClass(this.elementRef.nativeElement, 'highlight');
     } else {
