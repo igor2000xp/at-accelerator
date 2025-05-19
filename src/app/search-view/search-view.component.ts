@@ -18,7 +18,6 @@ export class SearchViewComponent {
 
   constructor() {
     this.onClickHandler();
-    console.log('constructor search-view.component.ts');
   }
 
   onClickHandler(search = '', event?: Event) {
