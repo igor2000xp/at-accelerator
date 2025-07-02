@@ -1,0 +1,192 @@
+# NgRx Toolkit Usage Rules
+
+## Source Attribution
+**Source**: [Context7 - Angular Architects NgRx Toolkit](https://context7.com/angular-architects/ngrx-toolkit)
+**Purpose**: Comprehensive NgRx usage guidelines and best practices
+
+## NgRx Store Fundamentals
+
+### 1. Store Setup and Structure
+```typescript
+// ✅ Feature state interface
+export interface UserState {
+  users: User[];
+  selectedUser: User | null;
+  loading: boolean;
+  error: string | null;
+}
+
+// ✅ Root state
+export interface AppState {
+  user: UserState;
+  products: ProductState;
+}
+
+// ✅ Feature module registration
+StoreModule.forFeature('user', userReducer),
+EffectsModule.forFeature([UserEffects]),
+```
+
+### 2. Actions and Action Creators
+```typescript
+// ✅ Action creators
+import { createAction, props } from '@ngrx/store';
+
+export const loadUsers = createAction('[User] Load Users');
+export const loadUsersSuccess = createAction('[User] Load Users Success', props<{ users: User[] }>());
+export const loadUsersFailure = createAction('[User] Load Users Failure', props<{ error: string }>());
+```
+
+### 3. Reducers and State Updates
+```typescript
+// ✅ Reducer with immer for immutable updates
+import { createReducer, on } from '@ngrx/store';
+import { loadUsers, loadUsersSuccess, loadUsersFailure } from './user.actions';
+
+export const initialState: UserState = {
+  users: [],
+  selectedUser: null,
+  loading: false,
+  error: null
+};
+
+export const userReducer = createReducer(
+  initialState,
+  on(loadUsers, state => ({ ...state, loading: true, error: null })),
+  on(loadUsersSuccess, (state, { users }) => ({ ...state, users, loading: false })),
+  on(loadUsersFailure, (state, { error }) => ({ ...state, error, loading: false }))
+);
+```
+
+### 4. Selectors
+```typescript
+// ✅ Selectors
+import { createSelector, createFeatureSelector } from '@ngrx/store';
+
+export const selectUserState = createFeatureSelector<AppState, UserState>('user');
+
+export const selectAllUsers = createSelector(
+  selectUserState,
+  (state: UserState) => state.users
+);
+
+export const selectSelectedUser = createSelector(
+  selectUserState,
+  (state: UserState) => state.selectedUser
+);
+```
+
+### 5. Effects
+```typescript
+// ✅ Effects for side effects
+import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Injectable } from '@angular/core';
+import { UserService } from '../services/user.service';
+import { loadUsers, loadUsersSuccess, loadUsersFailure } from './user.actions';
+import { catchError, map, mergeMap, of } from 'rxjs';
+
+@Injectable()
+export class UserEffects {
+  loadUsers$ = createEffect(() => this.actions$.pipe(
+    ofType(loadUsers),
+    mergeMap(() => this.userService.getUsers().pipe(
+      map(users => loadUsersSuccess({ users })),
+      catchError(error => of(loadUsersFailure({ error: error.message })))
+    ))
+  ));
+
+  constructor(
+    private actions$: Actions,
+    private userService: UserService
+  ) {}
+}
+```
+
+### 6. Entity Adapter
+```typescript
+// ✅ Entity adapter for normalized state
+import { createEntityAdapter, EntityState } from '@ngrx/entity';
+
+export interface UserEntityState extends EntityState<User> {
+  selectedUserId: number | null;
+}
+
+export const userAdapter = createEntityAdapter<User>();
+
+export const initialState: UserEntityState = userAdapter.getInitialState({
+  selectedUserId: null
+});
+
+export const userReducer = createReducer(
+  initialState,
+  on(loadUsersSuccess, (state, { users }) => userAdapter.setAll(users, state)),
+  // ... other handlers
+);
+```
+
+### 7. Best Practices
+- Use feature modules for state separation
+- Use action creators and props for type safety
+- Use selectors for state querying
+- Use effects for side effects and async operations
+- Use entity adapter for normalized state
+- Avoid business logic in reducers and effects
+- Use OnPush change detection in components
+- Use the async pipe for store observables
+- Implement proper error handling in effects
+- Write unit tests for reducers, selectors, and effects
+
+### 8. Testing
+```typescript
+// ✅ Testing reducers
+describe('UserReducer', () => {
+  it('should set loading true on loadUsers', () => {
+    const action = loadUsers();
+    const state = userReducer(initialState, action);
+    expect(state.loading).toBeTrue();
+  });
+});
+
+// ✅ Testing selectors
+describe('UserSelectors', () => {
+  it('should select all users', () => {
+    const state: AppState = {
+      user: {
+        users: [{ id: 1, name: 'John' }],
+        selectedUser: null,
+        loading: false,
+        error: null
+      },
+      products: { /* ... */ }
+    };
+    expect(selectAllUsers(state)).toEqual([{ id: 1, name: 'John' }]);
+  });
+});
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use feature modules for state
+- Use action creators and props
+- Use selectors for querying state
+- Use effects for side effects
+- Use entity adapter for normalized state
+- Use OnPush change detection
+- Use async pipe in components
+- Write unit tests for store logic
+
+### Don'ts ❌
+- Put business logic in reducers/effects
+- Mutate state directly
+- Use manual subscriptions in components
+- Ignore error handling
+- Skip testing
+- Overcomplicate state structure
+- Mix feature and global state
+
+This comprehensive guide ensures proper NgRx usage following best practices and Angular Architects recommendations.
+description:
+globs:
+alwaysApply: false
+---

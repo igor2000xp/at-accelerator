@@ -1,0 +1,1032 @@
+# Angular Material Guidelines
+
+## Source Attribution
+**Source**: [Context7 - Angular Material](https://context7.com/angular/material)
+**Purpose**: Comprehensive Material Design implementation guidelines and best practices
+
+## Material Design Fundamentals
+
+### 1. Material Module Setup
+```typescript
+// ✅ Proper Material module imports
+import { NgModule } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
+import { MatSortModule } from '@angular/material/sort';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatExpansionModule } from '@angular/material/expansion';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatRadioModule } from '@angular/material/radio';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSliderModule } from '@angular/material/slider';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+
+@NgModule({
+  imports: [
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatDialogModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+    MatToolbarModule,
+    MatSidenavModule,
+    MatListModule,
+    MatMenuModule,
+    MatTabsModule,
+    MatExpansionModule,
+    MatChipsModule,
+    MatBadgeModule,
+    MatTooltipModule,
+    MatCheckboxModule,
+    MatRadioModule,
+    MatSlideToggleModule,
+    MatSliderModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ],
+  exports: [
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatSortModule,
+    MatDialogModule,
+    MatSnackBarModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+    MatToolbarModule,
+    MatSidenavModule,
+    MatListModule,
+    MatMenuModule,
+    MatTabsModule,
+    MatExpansionModule,
+    MatChipsModule,
+    MatBadgeModule,
+    MatTooltipModule,
+    MatCheckboxModule,
+    MatRadioModule,
+    MatSlideToggleModule,
+    MatSliderModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ]
+})
+export class MaterialModule { }
+```
+
+### 2. Material Theme Configuration
+```scss
+// ✅ Custom Material theme
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+// Define your custom theme
+$primary-palette: mat.define-palette(mat.$indigo-palette);
+$accent-palette: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+$warn-palette: mat.define-palette(mat.$red-palette);
+
+// Create the theme object
+$theme: mat.define-light-theme((
+  color: (
+    primary: $primary-palette,
+    accent: $accent-palette,
+    warn: $warn-palette,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0
+));
+
+// Apply the theme
+@include mat.all-component-themes($theme);
+
+// ✅ Dark theme
+$dark-theme: mat.define-dark-theme((
+  color: (
+    primary: $primary-palette,
+    accent: $accent-palette,
+    warn: $warn-palette,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0
+));
+
+.dark-theme {
+  @include mat.all-component-colors($dark-theme);
+}
+
+// ✅ Custom component styles
+.custom-card {
+  @include mat.elevation(4);
+  border-radius: 8px;
+  margin: 16px;
+
+  .mat-card-header {
+    background-color: mat.get-color-from-palette($primary-palette, 50);
+    border-radius: 8px 8px 0 0;
+  }
+
+  .mat-card-content {
+    padding: 16px;
+  }
+}
+```
+
+### 3. Material Form Components
+```typescript
+// ✅ Material form implementation
+@Component({
+  selector: 'app-material-form',
+  template: `
+    <mat-card class="form-card">
+      <mat-card-header>
+        <mat-card-title>User Registration</mat-card-title>
+        <mat-card-subtitle>Please fill in your details</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" placeholder="Enter first name">
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="userForm.get('firstName')?.hasError('required')">
+                First name is required
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" placeholder="Enter last name">
+              <mat-icon matSuffix>person</mat-icon>
+              <mat-error *ngIf="userForm.get('lastName')?.hasError('required')">
+                Last name is required
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email</mat-label>
+              <input matInput formControlName="email" type="email" placeholder="Enter email">
+              <mat-icon matSuffix>email</mat-icon>
+              <mat-error *ngIf="userForm.get('email')?.hasError('required')">
+                Email is required
+              </mat-error>
+              <mat-error *ngIf="userForm.get('email')?.hasError('email')">
+                Please enter a valid email
+              </mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Role</mat-label>
+              <mat-select formControlName="role">
+                <mat-option value="user">User</mat-option>
+                <mat-option value="admin">Admin</mat-option>
+                <mat-option value="manager">Manager</mat-option>
+              </mat-select>
+              <mat-icon matSuffix>work</mat-icon>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Date of Birth</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="dateOfBirth">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-slide-toggle formControlName="newsletter">
+              Subscribe to newsletter
+            </mat-slide-toggle>
+          </div>
+
+          <div class="form-actions">
+            <button mat-button type="button" (click)="onCancel()">
+              Cancel
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="userForm.invalid">
+              <mat-icon>save</mat-icon>
+              Submit
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  `,
+  styles: [`
+    .form-card {
+      max-width: 600px;
+      margin: 20px auto;
+    }
+
+    .form-row {
+      margin-bottom: 16px;
+    }
+
+    .full-width {
+      width: 100%;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+      margin-top: 24px;
+    }
+  `]
+})
+export class MaterialFormComponent implements OnInit {
+  userForm!: FormGroup;
+
+  constructor(private fb: FormBuilder) {}
+
+  ngOnInit(): void {
+    this.userForm = this.fb.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      role: ['user', Validators.required],
+      dateOfBirth: ['', Validators.required],
+      newsletter: [false]
+    });
+  }
+
+  onSubmit(): void {
+    if (this.userForm.valid) {
+      console.log(this.userForm.value);
+    }
+  }
+
+  onCancel(): void {
+    this.userForm.reset();
+  }
+}
+```
+
+### 4. Material Data Table
+```typescript
+// ✅ Material data table implementation
+@Component({
+  selector: 'app-material-table',
+  template: `
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Users</mat-card-title>
+        <mat-card-subtitle>Manage user accounts</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="table-container">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search</mat-label>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search users..." #input>
+            <mat-icon matSuffix>search</mat-icon>
+          </mat-form-field>
+
+          <table mat-table [dataSource]="dataSource" matSort class="mat-elevation-z8">
+            <!-- ID Column -->
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+              <td mat-cell *matCellDef="let element"> {{ element.id }} </td>
+            </ng-container>
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Name </th>
+              <td mat-cell *matCellDef="let element"> {{ element.name }} </td>
+            </ng-container>
+
+            <!-- Email Column -->
+            <ng-container matColumnDef="email">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Email </th>
+              <td mat-cell *matCellDef="let element"> {{ element.email }} </td>
+            </ng-container>
+
+            <!-- Role Column -->
+            <ng-container matColumnDef="role">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Role </th>
+              <td mat-cell *matCellDef="let element">
+                <mat-chip-list>
+                  <mat-chip [color]="getRoleColor(element.role)" selected>
+                    {{ element.role }}
+                  </mat-chip>
+                </mat-chip-list>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header> Status </th>
+              <td mat-cell *matCellDef="let element">
+                <mat-slide-toggle [checked]="element.isActive" (change)="toggleStatus(element)">
+                  {{ element.isActive ? 'Active' : 'Inactive' }}
+                </mat-slide-toggle>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef> Actions </th>
+              <td mat-cell *matCellDef="let element">
+                <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="editUser(element)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="deleteUser(element)">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+
+          <mat-paginator [pageSizeOptions]="[5, 10, 25, 100]" aria-label="Select page of users"></mat-paginator>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  `,
+  styles: [`
+    .table-container {
+      position: relative;
+      min-height: 200px;
+    }
+
+    .search-field {
+      margin-bottom: 16px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    table {
+      width: 100%;
+    }
+
+    .mat-column-actions {
+      width: 80px;
+      text-align: center;
+    }
+  `]
+})
+export class MaterialTableComponent implements OnInit, AfterViewInit {
+  displayedColumns: string[] = ['id', 'name', 'email', 'role', 'status', 'actions'];
+  dataSource!: MatTableDataSource<User>;
+
+  @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
+
+  constructor() {
+    this.dataSource = new MatTableDataSource();
+  }
+
+  ngOnInit(): void {
+    // Load data
+    this.loadUsers();
+  }
+
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
+
+  applyFilter(event: Event): void {
+    const filterValue = (event.target as HTMLInputElement).value;
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+
+    if (this.dataSource.paginator) {
+      this.dataSource.paginator.firstPage();
+    }
+  }
+
+  getRoleColor(role: string): ThemePalette {
+    switch (role) {
+      case 'admin': return 'warn';
+      case 'manager': return 'accent';
+      default: return 'primary';
+    }
+  }
+
+  toggleStatus(user: User): void {
+    user.isActive = !user.isActive;
+    // Update in backend
+  }
+
+  editUser(user: User): void {
+    // Open edit dialog
+  }
+
+  deleteUser(user: User): void {
+    // Open delete confirmation dialog
+  }
+
+  private loadUsers(): void {
+    // Load users from service
+    const users: User[] = [
+      { id: 1, name: 'John Doe', email: 'john@example.com', role: 'user', isActive: true },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'admin', isActive: true },
+      { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'manager', isActive: false }
+    ];
+    this.dataSource.data = users;
+  }
+}
+```
+
+### 5. Material Dialogs
+```typescript
+// ✅ Material dialog implementation
+@Component({
+  selector: 'app-confirm-dialog',
+  template: `
+    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <mat-dialog-content>
+      <p>{{ data.message }}</p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-button mat-dialog-close>Cancel</button>
+      <button mat-raised-button color="warn" [mat-dialog-close]="true">
+        {{ data.confirmText }}
+      </button>
+    </mat-dialog-actions>
+  `
+})
+export class ConfirmDialogComponent {
+  constructor(
+    public dialogRef: MatDialogRef<ConfirmDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: {
+      title: string;
+      message: string;
+      confirmText: string;
+    }
+  ) {}
+}
+
+// ✅ Dialog service
+@Injectable({ providedIn: 'root' })
+export class DialogService {
+  constructor(private dialog: MatDialog) {}
+
+  confirm(title: string, message: string, confirmText: string = 'Confirm'): Observable<boolean> {
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '400px',
+      data: { title, message, confirmText },
+      disableClose: true
+    });
+
+    return dialogRef.afterClosed();
+  }
+
+  openFormDialog<T>(component: Type<T>, data?: any, config?: MatDialogConfig): Observable<any> {
+    const dialogRef = this.dialog.open(component, {
+      width: '600px',
+      data,
+      disableClose: true,
+      ...config
+    });
+
+    return dialogRef.afterClosed();
+  }
+}
+
+// ✅ Usage in component
+export class UserManagementComponent {
+  constructor(
+    private dialogService: DialogService,
+    private snackBar: MatSnackBar
+  ) {}
+
+  deleteUser(user: User): void {
+    this.dialogService.confirm(
+      'Delete User',
+      `Are you sure you want to delete ${user.name}?`,
+      'Delete'
+    ).subscribe(result => {
+      if (result) {
+        // Delete user
+        this.snackBar.open('User deleted successfully', 'Close', {
+          duration: 3000
+        });
+      }
+    });
+  }
+
+  editUser(user: User): void {
+    this.dialogService.openFormDialog(UserFormDialogComponent, { user })
+      .subscribe(result => {
+        if (result) {
+          // Update user
+          this.snackBar.open('User updated successfully', 'Close', {
+            duration: 3000
+          });
+        }
+      });
+  }
+}
+```
+
+### 6. Material Navigation
+```typescript
+// ✅ Material navigation implementation
+@Component({
+  selector: 'app-material-nav',
+  template: `
+    <mat-toolbar color="primary">
+      <button mat-icon-button (click)="sidenav.toggle()">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <span class="toolbar-title">My App</span>
+
+      <span class="toolbar-spacer"></span>
+
+      <button mat-icon-button [matMenuTriggerFor]="userMenu">
+        <mat-icon>account_circle</mat-icon>
+      </button>
+
+      <mat-menu #userMenu="matMenu">
+        <button mat-menu-item routerLink="/profile">
+          <mat-icon>person</mat-icon>
+          <span>Profile</span>
+        </button>
+        <button mat-menu-item routerLink="/settings">
+          <mat-icon>settings</mat-icon>
+          <span>Settings</span>
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>exit_to_app</mat-icon>
+          <span>Logout</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <mat-sidenav-container class="sidenav-container">
+      <mat-sidenav #sidenav mode="side" opened class="sidenav">
+        <mat-nav-list>
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active">
+            <mat-icon matListItemIcon>dashboard</mat-icon>
+            <span matListItemTitle>Dashboard</span>
+          </a>
+
+          <a mat-list-item routerLink="/users" routerLinkActive="active">
+            <mat-icon matListItemIcon>people</mat-icon>
+            <span matListItemTitle>Users</span>
+          </a>
+
+          <a mat-list-item routerLink="/reports" routerLinkActive="active">
+            <mat-icon matListItemIcon>assessment</mat-icon>
+            <span matListItemTitle>Reports</span>
+          </a>
+
+          <mat-divider></mat-divider>
+
+          <a mat-list-item routerLink="/settings" routerLinkActive="active">
+            <mat-icon matListItemIcon>settings</mat-icon>
+            <span matListItemTitle>Settings</span>
+          </a>
+        </mat-nav-list>
+      </mat-sidenav>
+
+      <mat-sidenav-content class="sidenav-content">
+        <router-outlet></router-outlet>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
+  `,
+  styles: [`
+    .sidenav-container {
+      height: calc(100vh - 64px);
+    }
+
+    .sidenav {
+      width: 250px;
+    }
+
+    .sidenav-content {
+      padding: 20px;
+    }
+
+    .toolbar-spacer {
+      flex: 1 1 auto;
+    }
+
+    .toolbar-title {
+      margin-left: 16px;
+    }
+
+    .active {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+  `]
+})
+export class MaterialNavComponent {
+  logout(): void {
+    // Handle logout
+  }
+}
+```
+
+### 7. Material Progress and Loading
+```typescript
+// ✅ Material progress implementation
+@Component({
+  selector: 'app-material-progress',
+  template: `
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Progress Indicators</mat-card-title>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Linear Progress -->
+        <div class="progress-section">
+          <h3>Linear Progress</h3>
+          <mat-progress-bar mode="determinate" [value]="linearProgress"></mat-progress-bar>
+          <p>Progress: {{ linearProgress }}%</p>
+        </div>
+
+        <!-- Circular Progress -->
+        <div class="progress-section">
+          <h3>Circular Progress</h3>
+          <mat-progress-spinner mode="determinate" [value]="circularProgress"></mat-progress-spinner>
+          <p>Progress: {{ circularProgress }}%</p>
+        </div>
+
+        <!-- Indeterminate Progress -->
+        <div class="progress-section">
+          <h3>Loading...</h3>
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" *ngIf="isLoading">
+          <mat-spinner></mat-spinner>
+          <p>Loading data...</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  `,
+  styles: [`
+    .progress-section {
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay p {
+      color: white;
+      margin-top: 16px;
+    }
+  `]
+})
+export class MaterialProgressComponent {
+  linearProgress = 0;
+  circularProgress = 0;
+  isLoading = false;
+
+  ngOnInit(): void {
+    this.simulateProgress();
+  }
+
+  simulateProgress(): void {
+    const interval = setInterval(() => {
+      this.linearProgress += 10;
+      this.circularProgress += 10;
+
+      if (this.linearProgress >= 100) {
+        clearInterval(interval);
+      }
+    }, 500);
+  }
+
+  showLoading(): void {
+    this.isLoading = true;
+    setTimeout(() => {
+      this.isLoading = false;
+    }, 3000);
+  }
+}
+```
+
+### 8. Material Theming and Customization
+```scss
+// ✅ Custom Material component styles
+.custom-material-theme {
+  // Custom button styles
+  .mat-mdc-raised-button {
+    border-radius: 20px;
+    text-transform: uppercase;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+
+    &.mat-primary {
+      background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    }
+
+    &.mat-accent {
+      background: linear-gradient(45deg, #4834d4, #686de0);
+    }
+  }
+
+  // Custom card styles
+  .mat-mdc-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  // Custom form field styles
+  .mat-mdc-form-field {
+    .mat-mdc-form-field-flex {
+      border-radius: 8px;
+    }
+
+    &.mat-focused {
+      .mat-mdc-form-field-flex {
+        box-shadow: 0 0 0 2px mat.get-color-from-palette($primary-palette, 200);
+      }
+    }
+  }
+
+  // Custom table styles
+  .mat-mdc-table {
+    border-radius: 8px;
+    overflow: hidden;
+
+    .mat-mdc-header-row {
+      background-color: mat.get-color-from-palette($primary-palette, 50);
+    }
+
+    .mat-mdc-row:hover {
+      background-color: mat.get-color-from-palette($primary-palette, 100);
+    }
+  }
+
+  // Custom dialog styles
+  .mat-mdc-dialog-container {
+    .mat-mdc-dialog-surface {
+      border-radius: 12px;
+      padding: 0;
+    }
+  }
+
+  // Custom snackbar styles
+  .mat-mdc-snack-bar-container {
+    &.success-snackbar {
+      --mdc-snackbar-container-color: #4caf50;
+      --mdc-snackbar-supporting-text-color: white;
+    }
+
+    &.error-snackbar {
+      --mdc-snackbar-container-color: #f44336;
+      --mdc-snackbar-supporting-text-color: white;
+    }
+  }
+}
+```
+
+### 9. Material Accessibility
+```typescript
+// ✅ Accessible Material components
+@Component({
+  selector: 'app-accessible-material',
+  template: `
+    <mat-card role="main">
+      <mat-card-header>
+        <mat-card-title id="page-title">Accessible Form</mat-card-title>
+        <mat-card-subtitle id="page-subtitle">Example of accessible Material components</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" role="form" aria-labelledby="page-title">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label for="name-input">Full Name</mat-label>
+            <input
+              matInput
+              id="name-input"
+              formControlName="name"
+              placeholder="Enter your full name"
+              aria-describedby="name-error"
+              [attr.aria-invalid]="form.get('name')?.invalid && form.get('name')?.touched">
+            <mat-error id="name-error" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+              Name is required
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label for="email-input">Email Address</mat-label>
+            <input
+              matInput
+              id="email-input"
+              type="email"
+              formControlName="email"
+              placeholder="Enter your email address"
+              aria-describedby="email-error"
+              [attr.aria-invalid]="form.get('email')?.invalid && form.get('email')?.touched">
+            <mat-error id="email-error" *ngIf="form.get('email')?.invalid && form.get('email')?.touched">
+              Please enter a valid email address
+            </mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button
+              mat-button
+              type="button"
+              (click)="onCancel()"
+              aria-label="Cancel form submission">
+              Cancel
+            </button>
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="form.invalid"
+              aria-label="Submit form">
+              Submit
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  `,
+  styles: [`
+    .full-width {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+      margin-top: 24px;
+    }
+  `]
+})
+export class AccessibleMaterialComponent {
+  form = new FormGroup({
+    name: new FormControl('', Validators.required),
+    email: new FormControl('', [Validators.required, Validators.email])
+  });
+
+  onSubmit(): void {
+    if (this.form.valid) {
+      console.log('Form submitted:', this.form.value);
+    }
+  }
+
+  onCancel(): void {
+    this.form.reset();
+  }
+}
+```
+
+### 10. Material Testing
+```typescript
+// ✅ Testing Material components
+describe('MaterialFormComponent', () => {
+  let component: MaterialFormComponent;
+  let fixture: ComponentFixture<MaterialFormComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        MaterialFormComponent,
+        MaterialModule,
+        ReactiveFormsModule,
+        NoopAnimationsModule
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MaterialFormComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should validate required fields', () => {
+    const form = component.userForm;
+
+    expect(form.get('firstName')?.hasError('required')).toBeTruthy();
+    expect(form.get('lastName')?.hasError('required')).toBeTruthy();
+    expect(form.get('email')?.hasError('required')).toBeTruthy();
+  });
+
+  it('should validate email format', () => {
+    const emailControl = component.userForm.get('email');
+    emailControl?.setValue('invalid-email');
+
+    expect(emailControl?.hasError('email')).toBeTruthy();
+
+    emailControl?.setValue('valid@email.com');
+    expect(emailControl?.hasError('email')).toBeFalsy();
+  });
+
+  it('should enable submit button when form is valid', () => {
+    const form = component.userForm;
+    form.patchValue({
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'john@example.com',
+      role: 'user',
+      dateOfBirth: new Date()
+    });
+
+    fixture.detectChanges();
+
+    const submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
+    expect(submitButton.disabled).toBeFalsy();
+  });
+});
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use Material Design principles consistently
+- Implement proper theming and customization
+- Follow accessibility guidelines
+- Use appropriate Material components for each use case
+- Implement proper form validation
+- Use Material icons consistently
+- Implement responsive design
+- Test Material components thoroughly
+- Use Material animations appropriately
+- Follow Material Design spacing guidelines
+
+### Don'ts ❌
+- Mix Material Design with other design systems
+- Ignore accessibility requirements
+- Use Material components incorrectly
+- Skip form validation
+- Over-customize Material components
+- Ignore responsive design
+- Skip testing Material components
+- Use inappropriate icons
+- Violate Material Design principles
+- Ignore Material Design spacing guidelines
+
+This comprehensive guide ensures proper Angular Material implementation following Material Design principles and best practices.

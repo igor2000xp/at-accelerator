@@ -1,0 +1,556 @@
+# Angular General Rules
+
+## Source Attribution
+**Source**: [Context7 - Angular General Rules](https://context7.com/angular/angular)
+**Purpose**: Comprehensive Angular framework guidelines and best practices
+
+## Angular Framework Fundamentals
+
+### 1. Component Lifecycle Management
+```typescript
+// ✅ Proper lifecycle implementation
+@Component({
+  selector: 'app-lifecycle-demo',
+  template: `<div>{{ message }}</div>`
+})
+export class LifecycleDemoComponent implements
+  OnInit, OnDestroy, OnChanges, AfterViewInit, AfterContentInit {
+
+  @Input() data!: any;
+  private destroy$ = new Subject<void>();
+
+  constructor() {
+    console.log('Constructor called');
+  }
+
+  ngOnInit(): void {
+    console.log('ngOnInit called');
+    // Initialize component
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('ngOnChanges called', changes);
+    // Handle input changes
+  }
+
+  ngAfterContentInit(): void {
+    console.log('ngAfterContentInit called');
+    // Content projection is ready
+  }
+
+  ngAfterViewInit(): void {
+    console.log('ngAfterViewInit called');
+    // View is ready
+  }
+
+  ngOnDestroy(): void {
+    console.log('ngOnDestroy called');
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+```
+
+### 2. Dependency Injection Best Practices
+```typescript
+// ✅ Proper dependency injection
+@Injectable({ providedIn: 'root' })
+export class UserService {
+  constructor(
+    private http: HttpClient,
+    private logger: LoggerService,
+    @Optional() private config: AppConfig
+  ) {}
+}
+
+// ✅ Factory providers
+export function userServiceFactory(http: HttpClient, config: AppConfig): UserService {
+  return new UserService(http, config.apiUrl);
+}
+
+@NgModule({
+  providers: [
+    {
+      provide: UserService,
+      useFactory: userServiceFactory,
+      deps: [HttpClient, AppConfig]
+    }
+  ]
+})
+export class AppModule { }
+
+// ✅ Value providers
+@NgModule({
+  providers: [
+    { provide: 'API_URL', useValue: 'https://api.example.com' },
+    { provide: 'APP_VERSION', useValue: '1.0.0' }
+  ]
+})
+export class AppModule { }
+```
+
+### 3. Template Syntax Best Practices
+```html
+<!-- ✅ Proper template syntax -->
+<div class="container">
+  <!-- Structural directives -->
+  <div *ngIf="isVisible; else hiddenContent">
+    <h2>{{ title }}</h2>
+    <p>{{ description }}</p>
+  </div>
+
+  <ng-template #hiddenContent>
+    <p>Content is hidden</p>
+  </ng-template>
+
+  <!-- Iteration with trackBy -->
+  <ul>
+    <li *ngFor="let item of items; trackBy: trackByFn; let i = index; let first = first; let last = last">
+      {{ i + 1 }}. {{ item.name }}
+      <span *ngIf="first"> (First)</span>
+      <span *ngIf="last"> (Last)</span>
+    </li>
+  </ul>
+
+  <!-- Event binding -->
+  <button (click)="onClick($event)"
+          (keydown.enter)="onEnter()"
+          (keydown.space)="onSpace()">
+    Click me
+  </button>
+
+  <!-- Property binding -->
+  <img [src]="imageUrl"
+       [alt]="imageAlt"
+       [class.active]="isActive"
+       [style.width.px]="imageWidth">
+
+  <!-- Two-way binding -->
+  <input [(ngModel)]="userName"
+         [placeholder]="'Enter your name'"
+         (ngModelChange)="onNameChange($event)">
+
+  <!-- Template reference variables -->
+  <input #nameInput
+         type="text"
+         (input)="onInput(nameInput.value)">
+  <p>Current value: {{ nameInput.value }}</p>
+</div>
+```
+
+### 4. Reactive Forms Best Practices
+```typescript
+// ✅ Reactive forms implementation
+@Component({
+  selector: 'app-reactive-form',
+  template: `
+    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input id="name"
+               type="text"
+               formControlName="name"
+               [class.invalid]="isFieldInvalid('name')">
+        <div *ngIf="isFieldInvalid('name')" class="error-message">
+          <span *ngIf="userForm.get('name')?.errors?.['required']">
+            Name is required
+          </span>
+          <span *ngIf="userForm.get('name')?.errors?.['minlength']">
+            Name must be at least 2 characters
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input id="email"
+               type="email"
+               formControlName="email">
+        <div *ngIf="isFieldInvalid('email')" class="error-message">
+          Please enter a valid email address
+        </div>
+      </div>
+
+      <div formGroupName="address">
+        <h3>Address</h3>
+        <input formControlName="street" placeholder="Street">
+        <input formControlName="city" placeholder="City">
+        <input formControlName="zipCode" placeholder="ZIP Code">
+      </div>
+
+      <div formArrayName="phones">
+        <h3>Phone Numbers</h3>
+        <div *ngFor="let phone of phonesArray.controls; let i = index">
+          <input [formControlName]="i" [placeholder]="'Phone ' + (i + 1)">
+          <button type="button" (click)="removePhone(i)">Remove</button>
+        </div>
+        <button type="button" (click)="addPhone()">Add Phone</button>
+      </div>
+
+      <button type="submit" [disabled]="userForm.invalid">
+        Submit
+      </button>
+    </form>
+  `
+})
+export class ReactiveFormComponent implements OnInit {
+  userForm!: FormGroup;
+
+  constructor(private fb: FormBuilder) {}
+
+  ngOnInit(): void {
+    this.userForm = this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      email: ['', [Validators.required, Validators.email]],
+      address: this.fb.group({
+        street: [''],
+        city: [''],
+        zipCode: ['']
+      }),
+      phones: this.fb.array([])
+    });
+
+    // Add initial phone
+    this.addPhone();
+  }
+
+  get phonesArray(): FormArray {
+    return this.userForm.get('phones') as FormArray;
+  }
+
+  addPhone(): void {
+    this.phonesArray.push(this.fb.control(''));
+  }
+
+  removePhone(index: number): void {
+    this.phonesArray.removeAt(index);
+  }
+
+  isFieldInvalid(fieldName: string): boolean {
+    const field = this.userForm.get(fieldName);
+    return field ? field.invalid && field.touched : false;
+  }
+
+  onSubmit(): void {
+    if (this.userForm.valid) {
+      console.log(this.userForm.value);
+    } else {
+      this.markFormGroupTouched();
+    }
+  }
+
+  private markFormGroupTouched(): void {
+    Object.keys(this.userForm.controls).forEach(key => {
+      const control = this.userForm.get(key);
+      control?.markAsTouched();
+    });
+  }
+}
+```
+
+### 5. Pipes and Transformations
+```typescript
+// ✅ Custom pipe implementation
+@Pipe({
+  name: 'customFilter',
+  pure: true // Pure pipe for performance
+})
+export class CustomFilterPipe implements PipeTransform {
+  transform(items: any[], filter: string): any[] {
+    if (!items || !filter) {
+      return items;
+    }
+
+    return items.filter(item =>
+      item.name.toLowerCase().includes(filter.toLowerCase())
+    );
+  }
+}
+
+// ✅ Async pipe usage
+@Component({
+  selector: 'app-async-demo',
+  template: `
+    <div *ngIf="data$ | async as data; else loading">
+      <h2>{{ data.title }}</h2>
+      <p>{{ data.description }}</p>
+    </div>
+
+    <ng-template #loading>
+      <p>Loading...</p>
+    </ng-template>
+  `
+})
+export class AsyncDemoComponent {
+  data$ = this.dataService.getData();
+
+  constructor(private dataService: DataService) {}
+}
+```
+
+### 6. Directives Best Practices
+```typescript
+// ✅ Custom structural directive
+@Directive({
+  selector: '[appUnless]',
+  standalone: true
+})
+export class UnlessDirective {
+  private hasView = false;
+
+  constructor(
+    private templateRef: TemplateRef<any>,
+    private viewContainer: ViewContainerRef
+  ) {}
+
+  @Input() set appUnless(condition: boolean) {
+    if (!condition && !this.hasView) {
+      this.viewContainer.createEmbeddedView(this.templateRef);
+      this.hasView = true;
+    } else if (condition && this.hasView) {
+      this.viewContainer.clear();
+      this.hasView = false;
+    }
+  }
+}
+
+// ✅ Custom attribute directive
+@Directive({
+  selector: '[appHighlight]',
+  standalone: true,
+  host: {
+    '(mouseenter)': 'onMouseEnter()',
+    '(mouseleave)': 'onMouseLeave()'
+  }
+})
+export class HighlightDirective {
+  @Input() appHighlight = 'yellow';
+  @Input() defaultColor = '';
+
+  private el: HTMLElement;
+
+  constructor(el: ElementRef) {
+    this.el = el.nativeElement;
+  }
+
+  onMouseEnter(): void {
+    this.highlight(this.appHighlight || this.defaultColor || 'red');
+  }
+
+  onMouseLeave(): void {
+    this.highlight('');
+  }
+
+  private highlight(color: string): void {
+    this.el.style.backgroundColor = color;
+  }
+}
+```
+
+### 7. Error Handling and Logging
+```typescript
+// ✅ Global error handler
+@Injectable()
+export class GlobalErrorHandler implements ErrorHandler {
+  constructor(
+    private logger: LoggerService,
+    private notificationService: NotificationService
+  ) {}
+
+  handleError(error: Error): void {
+    // Log the error
+    this.logger.error('An error occurred:', error);
+
+    // Show user-friendly message
+    this.notificationService.showError('Something went wrong. Please try again.');
+
+    // Send to error reporting service
+    this.reportError(error);
+  }
+
+  private reportError(error: Error): void {
+    // Send to external error reporting service
+    console.error('Error reported:', error);
+  }
+}
+
+// ✅ HTTP error interceptor
+@Injectable()
+export class HttpErrorInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    return next.handle(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        let errorMessage = 'An error occurred';
+
+        if (error.error instanceof ErrorEvent) {
+          // Client-side error
+          errorMessage = `Error: ${error.error.message}`;
+        } else {
+          // Server-side error
+          errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
+        }
+
+        this.notificationService.showError(errorMessage);
+        return throwError(() => error);
+      })
+    );
+  }
+}
+```
+
+### 8. Performance Optimization
+```typescript
+// ✅ OnPush change detection
+@Component({
+  selector: 'app-optimized',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class OptimizedComponent {
+  @Input() data!: Data[];
+
+  // Use trackBy for performance
+  trackByFn = (index: number, item: Data): number => item.id;
+
+  // Memoized getter
+  get expensiveValue(): string {
+    return this.calculateExpensiveValue();
+  }
+
+  private calculateExpensiveValue(): string {
+    // Expensive calculation
+    return 'result';
+  }
+}
+
+// ✅ Pure pipe for expensive operations
+@Pipe({
+  name: 'expensiveCalculation',
+  pure: true
+})
+export class ExpensiveCalculationPipe implements PipeTransform {
+  transform(value: any): any {
+    // Expensive calculation
+    return this.performExpensiveCalculation(value);
+  }
+
+  private performExpensiveCalculation(value: any): any {
+    // Complex calculation logic
+    return value;
+  }
+}
+```
+
+### 9. Security Best Practices
+```typescript
+// ✅ XSS prevention
+@Component({
+  selector: 'app-safe-content',
+  template: `
+    <div [innerHTML]="sanitizedContent"></div>
+  `
+})
+export class SafeContentComponent {
+  @Input() set content(value: string) {
+    this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(value);
+  }
+
+  sanitizedContent: SafeHtml = '';
+
+  constructor(private sanitizer: DomSanitizer) {}
+}
+
+// ✅ Input validation
+@Injectable({ providedIn: 'root' })
+export class ValidationService {
+  validateInput(input: string): boolean {
+    // Sanitize and validate input
+    const sanitized = DOMPurify.sanitize(input);
+    return sanitized === input;
+  }
+
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+}
+```
+
+### 10. Testing Best Practices
+```typescript
+// ✅ Component testing
+describe('UserComponent', () => {
+  let component: UserComponent;
+  let fixture: ComponentFixture<UserComponent>;
+  let userService: jasmine.SpyObj<UserService>;
+
+  beforeEach(async () => {
+    const userServiceSpy = jasmine.createSpyObj('UserService', ['getUser', 'updateUser']);
+
+    await TestBed.configureTestingModule({
+      imports: [UserComponent],
+      providers: [
+        { provide: UserService, useValue: userServiceSpy }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UserComponent);
+    component = fixture.componentInstance;
+    userService = TestBed.inject(UserService) as jasmine.SpyObj<UserService>;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should load user data on init', () => {
+    const mockUser = { id: 1, name: 'Test User' };
+    userService.getUser.and.returnValue(of(mockUser));
+
+    component.ngOnInit();
+
+    expect(userService.getUser).toHaveBeenCalledWith(1);
+    expect(component.user).toEqual(mockUser);
+  });
+
+  it('should handle error when loading user', () => {
+    const error = new Error('User not found');
+    userService.getUser.and.returnValue(throwError(() => error));
+
+    component.ngOnInit();
+
+    expect(component.error).toBeTruthy();
+  });
+});
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use proper lifecycle hooks
+- Implement OnPush change detection for performance
+- Use reactive forms for complex forms
+- Implement proper error handling
+- Use async pipe when possible
+- Create pure pipes for expensive operations
+- Implement proper security measures
+- Write comprehensive tests
+- Use dependency injection properly
+- Follow Angular style guide
+
+### Don'ts ❌
+- Forget to implement OnDestroy
+- Use manual change detection unnecessarily
+- Mix template-driven and reactive forms
+- Ignore error handling
+- Use manual subscriptions without cleanup
+- Create impure pipes for simple operations
+- Trust user input without validation
+- Skip unit tests
+- Create circular dependencies
+- Violate Angular style guide
+
+This comprehensive guide ensures proper Angular framework usage following industry best practices and Angular team recommendations.
+description:
+globs:
+alwaysApply: false
+---

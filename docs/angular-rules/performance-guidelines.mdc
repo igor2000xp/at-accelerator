@@ -1,0 +1,634 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Performance Guidelines for Angular Development
+
+## Change Detection Optimization
+
+### OnPush Strategy Implementation
+```typescript
+// ✅ Use OnPush change detection for better performance
+@Component({
+  selector: 'app-optimized-component',
+  templateUrl: './optimized-component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class OptimizedComponent implements OnInit, OnDestroy {
+  @Input() data!: Data[];
+  @Output() dataChange = new EventEmitter<Data[]>();
+
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(private dataService: DataService) {}
+
+  ngOnInit(): void {
+    this.dataService.getData()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(data => {
+        // Trigger change detection manually if needed
+        this.cdr.detectChanges();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // Use immutable updates to trigger change detection
+  updateData(newData: Data): void {
+    const updatedData = this.data.map(item =>
+      item.id === newData.id ? newData : item
+    );
+    this.dataChange.emit(updatedData);
+  }
+
+  // Use trackBy for performance in *ngFor
+  trackByFn = (index: number, item: Data): number => item.id;
+}
+```
+
+### Template Expression Optimization
+```html
+<!-- ❌ Avoid: Complex calculations in templates -->
+<div *ngFor="let item of items">
+  {{ complexCalculation(item) }} <!-- Expensive operation -->
+</div>
+
+<!-- ✅ Recommended: Use pure pipes -->
+<div *ngFor="let item of items">
+  {{ item | complexCalculation }}
+</div>
+
+<!-- ✅ Or use getter with memoization -->
+<div *ngFor="let item of items">
+  {{ getCalculatedValue(item) }}
+</div>
+```
+
+```typescript
+// ✅ Pure pipe implementation
+@Pipe({
+  name: 'complexCalculation',
+  pure: true
+})
+export class ComplexCalculationPipe implements PipeTransform {
+  transform(item: any): any {
+    // Expensive calculation
+    return this.performComplexCalculation(item);
+  }
+
+  private performComplexCalculation(item: any): any {
+    // Complex logic here
+    return result;
+  }
+}
+
+// ✅ Memoized getter
+export class OptimizedComponent {
+  private calculationCache = new Map<any, any>();
+
+  getCalculatedValue(item: any): any {
+    if (this.calculationCache.has(item.id)) {
+      return this.calculationCache.get(item.id);
+    }
+
+    const result = this.performComplexCalculation(item);
+    this.calculationCache.set(item.id, result);
+    return result;
+  }
+}
+```
+
+## Memory Management
+
+### Subscription Management
+```typescript
+// ✅ Proper subscription management with takeUntil
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class MemorySafeComponent implements OnInit, OnDestroy {
+  private readonly destroy$ = new Subject<void>();
+
+  ngOnInit(): void {
+    // Multiple subscriptions with proper cleanup
+    this.dataService.getData()
+      .pipe(
+        takeUntil(this.destroy$),
+        retry(3),
+        catchError(error => {
+          this.handleError(error);
+          return EMPTY;
+        })
+      )
+      .subscribe(data => this.handleData(data));
+
+    this.userService.getUser()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => this.handleUser(user));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+
+// ✅ Alternative: Use async pipe when possible
+@Component({
+  template: `
+    <div *ngFor="let item of data$ | async; trackBy: trackByFn">
+      {{ item.name }}
+    </div>
+  `
+})
+export class AsyncComponent {
+  data$ = this.dataService.getData();
+
+  trackByFn = (index: number, item: any): number => item.id;
+}
+```
+
+### Event Listener Cleanup
+```typescript
+// ✅ Proper event listener cleanup
+@Component({
+  selector: 'app-event-component'
+})
+export class EventComponent implements OnInit, OnDestroy {
+  private resizeHandler = this.handleResize.bind(this);
+  private scrollHandler = this.handleScroll.bind(this);
+
+  ngOnInit(): void {
+    window.addEventListener('resize', this.resizeHandler);
+    document.addEventListener('scroll', this.scrollHandler);
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('resize', this.resizeHandler);
+    document.removeEventListener('scroll', this.scrollHandler);
+  }
+
+  private handleResize(): void {
+    // Handle resize
+  }
+
+  private handleScroll(): void {
+    // Handle scroll
+  }
+}
+```
+
+## Bundle Optimization
+
+### Lazy Loading
+```typescript
+// ✅ Implement lazy loading for modules
+const routes: Routes = [
+  {
+    path: 'users',
+    loadChildren: () => import('./user/user.module').then(m => m.UserModule),
+    canActivate: [AuthGuard],
+    data: { preload: true }
+  },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule),
+    canActivate: [AuthGuard, AdminGuard]
+  }
+];
+
+// ✅ Custom preloading strategy
+@Injectable()
+export class CustomPreloadingStrategy implements PreloadingStrategy {
+  preload(route: Route, load: () => Observable<any>): Observable<any> {
+    if (route.data && route.data['preload']) {
+      return load();
+    }
+    return of(null);
+  }
+}
+```
+
+### Standalone Components
+```typescript
+// ✅ Use standalone components for better tree-shaking
+@Component({
+  selector: 'app-standalone-component',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  template: `
+    <form [formGroup]="form">
+      <input formControlName="name" />
+    </form>
+  `
+})
+export class StandaloneComponent {
+  form = new FormGroup({
+    name: new FormControl('')
+  });
+}
+```
+
+### Tree Shaking Optimization
+```typescript
+// ✅ Import only what you need
+import { Component } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
+import { takeUntil, catchError } from 'rxjs/operators';
+import { Subject, EMPTY } from 'rxjs';
+
+// ❌ Avoid: Importing entire modules
+import * as rxjs from 'rxjs';
+import * as forms from '@angular/forms';
+```
+
+## Runtime Performance
+
+### Debouncing and Throttling
+```typescript
+// ✅ Implement debouncing for user inputs
+@Component({
+  selector: 'app-search-component'
+})
+export class SearchComponent {
+  private searchTerm$ = new Subject<string>();
+
+  searchResults$ = this.searchTerm$.pipe(
+    debounceTime(300),
+    distinctUntilChanged(),
+    switchMap(term => this.searchService.search(term)),
+    catchError(error => {
+      console.error('Search error:', error);
+      return of([]);
+    })
+  );
+
+  onSearch(term: string): void {
+    this.searchTerm$.next(term);
+  }
+}
+
+// ✅ Throttling for scroll events
+@Component({
+  selector: 'app-scroll-component'
+})
+export class ScrollComponent {
+  private scroll$ = new Subject<Event>();
+
+  ngOnInit(): void {
+    this.scroll$.pipe(
+      throttleTime(100), // Throttle to 100ms
+      map(event => (event.target as Element).scrollTop)
+    ).subscribe(scrollTop => {
+      this.handleScroll(scrollTop);
+    });
+  }
+
+  onScroll(event: Event): void {
+    this.scroll$.next(event);
+  }
+}
+```
+
+### Virtual Scrolling
+```typescript
+// ✅ Use virtual scrolling for large lists
+import { ScrollingModule } from '@angular/cdk/scrolling';
+
+@Component({
+  selector: 'app-virtual-list',
+  template: `
+    <cdk-virtual-scroll-viewport itemSize="50" class="viewport">
+      <div *cdkVirtualFor="let item of items; trackBy: trackByFn">
+        {{ item.name }}
+      </div>
+    </cdk-virtual-scroll-viewport>
+  `,
+  styles: [`
+    .viewport {
+      height: 400px;
+      width: 100%;
+    }
+  `]
+})
+export class VirtualListComponent {
+  items = Array.from({ length: 10000 }, (_, i) => ({ id: i, name: `Item ${i}` }));
+
+  trackByFn = (index: number, item: any): number => item.id;
+}
+```
+
+### Caching Strategies
+```typescript
+// ✅ Implement caching for expensive operations
+@Injectable({ providedIn: 'root' })
+export class CacheService {
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly TTL = 5 * 60 * 1000; // 5 minutes
+
+  set<T>(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  get<T>(key: string): T | null {
+    const item = this.cache.get(key);
+
+    if (!item) {
+      return null;
+    }
+
+    if (Date.now() - item.timestamp > this.TTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.data as T;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+// ✅ Service with caching
+@Injectable({ providedIn: 'root' })
+export class DataService {
+  constructor(
+    private http: HttpClient,
+    private cacheService: CacheService
+  ) {}
+
+  getData(id: number): Observable<any> {
+    const cacheKey = `data-${id}`;
+    const cachedData = this.cacheService.get(cacheKey);
+
+    if (cachedData) {
+      return of(cachedData);
+    }
+
+    return this.http.get(`/api/data/${id}`).pipe(
+      tap(data => this.cacheService.set(cacheKey, data))
+    );
+  }
+}
+```
+
+## Image and Asset Optimization
+
+### Lazy Loading Images
+```typescript
+// ✅ Lazy loading directive for images
+@Directive({
+  selector: '[lazyLoad]',
+  standalone: true
+})
+export class LazyLoadDirective implements OnInit {
+  @Input() lazyLoad!: string;
+
+  constructor(private el: ElementRef) {}
+
+  ngOnInit(): void {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = this.el.nativeElement as HTMLImageElement;
+          img.src = this.lazyLoad;
+          observer.unobserve(img);
+        }
+      });
+    });
+
+    observer.observe(this.el.nativeElement);
+  }
+}
+
+// Usage
+@Component({
+  template: `
+    <img [lazyLoad]="imageUrl" alt="Lazy loaded image" />
+  `
+})
+export class ImageComponent {
+  imageUrl = 'https://example.com/large-image.jpg';
+}
+```
+
+### Asset Optimization
+```typescript
+// ✅ Optimize images and assets
+// angular.json configuration
+{
+  "projects": {
+    "your-app": {
+      "architect": {
+        "build": {
+          "options": {
+            "optimization": {
+              "scripts": true,
+              "styles": true,
+              "fonts": true
+            },
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "src/assets/",
+                "output": "/assets/",
+                "followSymlinks": false
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## Performance Monitoring
+
+### Performance Metrics
+```typescript
+// ✅ Performance monitoring service
+@Injectable({ providedIn: 'root' })
+export class PerformanceService {
+  private metrics = new Map<string, number[]>();
+
+  startTimer(name: string): void {
+    performance.mark(`${name}-start`);
+  }
+
+  endTimer(name: string): void {
+    performance.mark(`${name}-end`);
+    performance.measure(name, `${name}-start`, `${name}-end`);
+
+    const measure = performance.getEntriesByName(name)[0];
+    if (measure) {
+      if (!this.metrics.has(name)) {
+        this.metrics.set(name, []);
+      }
+      this.metrics.get(name)!.push(measure.duration);
+    }
+  }
+
+  getAverageTime(name: string): number {
+    const times = this.metrics.get(name);
+    if (!times || times.length === 0) {
+      return 0;
+    }
+    return times.reduce((sum, time) => sum + time, 0) / times.length;
+  }
+
+  logMetrics(): void {
+    this.metrics.forEach((times, name) => {
+      console.log(`${name}: ${this.getAverageTime(name).toFixed(2)}ms (${times.length} samples)`);
+    });
+  }
+}
+
+// Usage in components
+@Component({})
+export class MonitoredComponent {
+  constructor(private performanceService: PerformanceService) {}
+
+  ngOnInit(): void {
+    this.performanceService.startTimer('component-init');
+    // Component initialization
+    this.performanceService.endTimer('component-init');
+  }
+}
+```
+
+### Memory Leak Detection
+```typescript
+// ✅ Memory leak detection utility
+@Injectable({ providedIn: 'root' })
+export class MemoryLeakDetector {
+  private componentInstances = new WeakSet<any>();
+
+  trackComponent(component: any): void {
+    this.componentInstances.add(component);
+  }
+
+  checkForLeaks(): void {
+    // This is a simplified example
+    // In a real implementation, you'd use more sophisticated detection
+    console.log('Memory leak detection completed');
+  }
+}
+
+// Usage in components
+@Component({})
+export class TrackedComponent implements OnInit, OnDestroy {
+  constructor(private leakDetector: MemoryLeakDetector) {}
+
+  ngOnInit(): void {
+    this.leakDetector.trackComponent(this);
+  }
+
+  ngOnDestroy(): void {
+    // Component cleanup
+  }
+}
+```
+
+## Anti-Patterns to Avoid
+
+### Performance Anti-Patterns
+```typescript
+// ❌ Avoid: Complex calculations in templates
+template: `
+  <div *ngFor="let item of items">
+    {{ expensiveCalculation(item) }}
+  </div>
+`
+
+// ❌ Avoid: Manual subscription management without cleanup
+ngOnInit() {
+  this.dataService.getData().subscribe(data => {
+    this.data = data; // Memory leak potential
+  });
+}
+
+// ❌ Avoid: Unnecessary change detection triggers
+ngOnInit() {
+  setInterval(() => {
+    this.cdr.detectChanges(); // Unnecessary change detection
+  }, 1000);
+}
+
+// ❌ Avoid: Large bundle imports
+import * as rxjs from 'rxjs'; // Import entire library
+import * as forms from '@angular/forms'; // Import entire module
+```
+
+### Memory Anti-Patterns
+```typescript
+// ❌ Avoid: Event listeners without cleanup
+ngOnInit() {
+  window.addEventListener('resize', () => {
+    this.handleResize();
+  }); // No cleanup
+}
+
+// ❌ Avoid: Circular references
+class ComponentA {
+  componentB: ComponentB;
+}
+
+class ComponentB {
+  componentA: ComponentA; // Circular reference
+}
+
+// ❌ Avoid: Large objects in memory
+class BadComponent {
+  largeData = new Array(1000000).fill('data'); // Large array in memory
+}
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use OnPush change detection strategy
+- Implement proper subscription cleanup
+- Use async pipe when possible
+- Implement lazy loading for modules
+- Use standalone components
+- Optimize bundle size with tree shaking
+- Implement caching strategies
+- Use virtual scrolling for large lists
+- Debounce user inputs
+- Monitor performance metrics
+- Optimize images and assets
+- Use trackBy functions in *ngFor
+
+### Don'ts ❌
+- Perform complex calculations in templates
+- Forget to clean up subscriptions
+- Import entire libraries unnecessarily
+- Use manual change detection unnecessarily
+- Create memory leaks with event listeners
+- Load large datasets without pagination
+- Ignore bundle size optimization
+- Use inefficient change detection strategies
+- Forget to implement proper error handling
+- Over-optimize prematurely
+
+### Performance Checklist
+- [ ] OnPush change detection implemented
+- [ ] Subscriptions properly cleaned up
+- [ ] Async pipe used where appropriate
+- [ ] Lazy loading implemented for modules
+- [ ] Bundle size optimized
+- [ ] Images and assets optimized
+- [ ] Virtual scrolling for large lists
+- [ ] Caching strategies implemented
+- [ ] Performance monitoring in place
+- [ ] Memory leak detection active
+- [ ] Debouncing/throttling implemented
+- [ ] TrackBy functions used in *ngFor
+
+This comprehensive guide ensures optimal performance for your Angular applications through proper change detection, memory management, bundle optimization, and runtime performance strategies.

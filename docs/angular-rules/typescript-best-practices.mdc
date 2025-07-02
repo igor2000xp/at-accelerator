@@ -1,0 +1,521 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# TypeScript Best Practices for Angular Development
+
+## Type Safety Guidelines
+
+### Strict TypeScript Configuration
+- Always use `strict: true` in `tsconfig.json`
+- Enable all strict flags: `noImplicitAny`, `strictNullChecks`, `strictFunctionTypes`
+- Use `exactOptionalPropertyTypes` for precise optional property handling
+- Enable `noUncheckedIndexedAccess` for safer array/object access
+
+### Interface vs Type Usage
+```typescript
+// ✅ Prefer interfaces for object shapes
+interface User {
+  readonly id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+// ✅ Use types for unions, intersections, and utility types
+type UserRole = 'admin' | 'user' | 'moderator';
+type UserWithPermissions = User & { permissions: string[] };
+type PartialUser = Partial<User>;
+
+// ❌ Avoid: Using 'any' type
+interface BadInterface {
+  data: any; // Use specific types instead
+  [key: string]: any; // Avoid unconstrained index signatures
+}
+```
+
+### Utility Types Best Practices
+```typescript
+// ✅ Proper use of utility types
+type CreateUserRequest = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+type UpdateUserRequest = Partial<Omit<User, 'id' | 'createdAt'>>;
+type UserSummary = Pick<User, 'id' | 'name' | 'role'>;
+type RequiredUserFields = RequiredFields<User, 'name' | 'email'>;
+
+// ✅ Custom utility types for complex scenarios
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
+
+// ✅ Constrained generics
+interface ApiResponse<T> {
+  data: T;
+  message: string;
+  success: boolean;
+  timestamp: Date;
+}
+
+interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+```
+
+## Angular-Specific TypeScript Patterns
+
+### Component Type Safety
+```typescript
+// ✅ Proper component typing
+@Component({
+  selector: 'app-user-profile',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './user-profile.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class UserProfileComponent implements OnInit, OnDestroy {
+  @Input() userId!: number;
+  @Output() userUpdated = new EventEmitter<User>();
+
+  profileForm!: FormGroup<UserForm>;
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(
+    private userService: UserService,
+    private fb: FormBuilder
+  ) {}
+
+  ngOnInit(): void {
+    this.initializeForm();
+    this.loadUser();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private initializeForm(): void {
+    this.profileForm = this.fb.group<UserForm>({
+      name: this.fb.control('', { validators: [Validators.required, Validators.minLength(2)] }),
+      email: this.fb.control('', { validators: [Validators.required, Validators.email] }),
+      bio: this.fb.control('', { validators: [Validators.maxLength(500)] })
+    });
+  }
+}
+
+// ✅ Strongly typed form interfaces
+interface UserForm {
+  name: FormControl<string>;
+  email: FormControl<string>;
+  bio: FormControl<string>;
+}
+```
+
+### Service Type Safety
+```typescript
+// ✅ Properly typed services
+@Injectable({ providedIn: 'root' })
+export class UserService {
+  private readonly apiUrl = environment.apiUrl;
+
+  constructor(private http: HttpClient) {}
+
+  getUser(id: number): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/users/${id}`)
+      .pipe(
+        retry(3),
+        catchError(this.handleError)
+      );
+  }
+
+  createUser(userData: CreateUserRequest): Observable<User> {
+    return this.http.post<User>(`${this.apiUrl}/users`, userData)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  updateUser(id: number, updates: UpdateUserRequest): Observable<User> {
+    return this.http.patch<User>(`${this.apiUrl}/users/${id}`, updates)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    const errorMessage = this.getErrorMessage(error);
+    console.error('API Error:', errorMessage);
+    return throwError(() => new Error(errorMessage));
+  }
+
+  private getErrorMessage(error: HttpErrorResponse): string {
+    if (error.error instanceof ErrorEvent) {
+      return `Client error: ${error.error.message}`;
+    }
+    return `Server error: ${error.status} - ${error.message}`;
+  }
+}
+```
+
+### Template Type Safety
+```typescript
+// ✅ Type-safe templates with proper interfaces
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <div class="user-list">
+      <app-user-card
+        *ngFor="let user of users$ | async; trackBy: trackByUserId"
+        [user]="user"
+        (userSelected)="onUserSelected($event)"
+        (userDeleted)="onUserDeleted($event)">
+      </app-user-card>
+    </div>
+  `
+})
+export class UserListComponent {
+  users$ = this.userService.getUsers();
+
+  trackByUserId = (index: number, user: User): number => user.id;
+
+  onUserSelected(user: User): void {
+    this.router.navigate(['/users', user.id]);
+  }
+
+  onUserDeleted(userId: number): void {
+    this.userService.deleteUser(userId).subscribe(() => {
+      this.refreshUsers();
+    });
+  }
+}
+```
+
+## Code Organization Guidelines
+
+### File Structure
+```typescript
+// ✅ One class per file
+// user-profile.component.ts
+export class UserProfileComponent { }
+
+// ✅ Barrel exports for clean imports
+// index.ts
+export * from './user-profile.component';
+export * from './user-profile.service';
+export * from './user-profile.interface';
+
+// ✅ Proper import organization
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subject, Observable, takeUntil } from 'rxjs';
+
+import { UserService } from '../services/user.service';
+import { User, CreateUserRequest } from '../models/user.interface';
+import { environment } from '../../environments/environment';
+```
+
+### Naming Conventions
+```typescript
+// ✅ Follow Angular style guide naming
+// Components: PascalCase with 'Component' suffix
+export class UserProfileComponent { }
+
+// Services: PascalCase with 'Service' suffix
+export class UserService { }
+
+// Interfaces: PascalCase, no suffix
+interface User { }
+
+// Types: PascalCase, descriptive
+type UserRole = 'admin' | 'user' | 'moderator';
+
+// Constants: UPPER_SNAKE_CASE
+const API_ENDPOINTS = {
+  USERS: '/users',
+  AUTH: '/auth'
+} as const;
+
+// Private properties: camelCase with underscore prefix
+private readonly _destroy$ = new Subject<void>();
+```
+
+## Advanced TypeScript Patterns
+
+### Generic Constraints
+```typescript
+// ✅ Proper generic constraints
+interface Identifiable {
+  id: number;
+}
+
+interface Timestamped {
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+// Generic service with constraints
+@Injectable({ providedIn: 'root' })
+export class BaseApiService<T extends Identifiable & Timestamped> {
+  constructor(
+    protected http: HttpClient,
+    protected endpoint: string
+  ) {}
+
+  getById(id: number): Observable<T> {
+    return this.http.get<T>(`${this.endpoint}/${id}`);
+  }
+
+  create(item: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Observable<T> {
+    return this.http.post<T>(this.endpoint, item);
+  }
+
+  update(id: number, updates: Partial<Omit<T, 'id' | 'createdAt'>>): Observable<T> {
+    return this.http.patch<T>(`${this.endpoint}/${id}`, updates);
+  }
+}
+
+// Usage
+export class UserService extends BaseApiService<User> {
+  constructor(http: HttpClient) {
+    super(http, '/users');
+  }
+}
+```
+
+### Conditional Types
+```typescript
+// ✅ Advanced conditional types
+type NonNullableFields<T> = {
+  [K in keyof T]: T[K] extends null | undefined ? never : K;
+}[keyof T];
+
+type RequiredNonNullable<T> = Pick<T, NonNullableFields<T>>;
+
+// Usage in forms
+type UserFormFields = RequiredNonNullable<User>;
+```
+
+### Template Literal Types
+```typescript
+// ✅ Template literal types for API endpoints
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+type ApiEndpoint<T extends string> = `/api/${T}`;
+
+type UserEndpoints =
+  | ApiEndpoint<'users'>
+  | ApiEndpoint<'users/:id'>
+  | ApiEndpoint<'users/:id/profile'>;
+
+// Usage
+const endpoints: Record<UserEndpoints, string> = {
+  '/api/users': '/users',
+  '/api/users/:id': '/users/:id',
+  '/api/users/:id/profile': '/users/:id/profile'
+} as const;
+```
+
+## Error Handling with TypeScript
+
+### Typed Error Handling
+```typescript
+// ✅ Typed error handling
+interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+interface ValidationError extends ApiError {
+  code: 'VALIDATION_ERROR';
+  fieldErrors: Record<string, string[]>;
+}
+
+interface NetworkError extends ApiError {
+  code: 'NETWORK_ERROR';
+  status: number;
+}
+
+type AppError = ValidationError | NetworkError | ApiError;
+
+// Error handling service
+@Injectable({ providedIn: 'root' })
+export class ErrorHandlingService {
+  handleError(error: AppError): void {
+    switch (error.code) {
+      case 'VALIDATION_ERROR':
+        this.handleValidationError(error);
+        break;
+      case 'NETWORK_ERROR':
+        this.handleNetworkError(error);
+        break;
+      default:
+        this.handleGenericError(error);
+    }
+  }
+
+  private handleValidationError(error: ValidationError): void {
+    // Handle validation errors
+  }
+
+  private handleNetworkError(error: NetworkError): void {
+    // Handle network errors
+  }
+
+  private handleGenericError(error: ApiError): void {
+    // Handle generic errors
+  }
+}
+```
+
+## Testing with TypeScript
+
+### Typed Test Utilities
+```typescript
+// ✅ Typed test utilities
+export function createMockUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 1,
+    name: 'Test User',
+    email: 'test@example.com',
+    role: 'user',
+    createdAt: new Date(),
+    ...overrides
+  };
+}
+
+export function createMockApiResponse<T>(data: T): ApiResponse<T> {
+  return {
+    data,
+    message: 'Success',
+    success: true,
+    timestamp: new Date()
+  };
+}
+
+// Usage in tests
+describe('UserService', () => {
+  let service: UserService;
+  let httpMock: HttpTestingController;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [UserService]
+    });
+
+    service = TestBed.inject(UserService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  it('should get user by id', () => {
+    const mockUser = createMockUser({ id: 1 });
+    const mockResponse = createMockApiResponse(mockUser);
+
+    service.getUser(1).subscribe(user => {
+      expect(user).toEqual(mockUser);
+    });
+
+    const req = httpMock.expectOne('/api/users/1');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockResponse);
+  });
+});
+```
+
+## Performance Considerations
+
+### Type-Safe Performance Patterns
+```typescript
+// ✅ Type-safe memoization
+function memoize<T extends (...args: any[]) => any>(
+  fn: T,
+  getKey?: (...args: Parameters<T>) => string
+): T {
+  const cache = new Map<string, ReturnType<T>>();
+
+  return ((...args: Parameters<T>): ReturnType<T> => {
+    const key = getKey ? getKey(...args) : JSON.stringify(args);
+
+    if (cache.has(key)) {
+      return cache.get(key)!;
+    }
+
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  }) as T;
+}
+
+// Usage
+const expensiveCalculation = memoize((n: number): number => {
+  // Expensive calculation
+  return n * n;
+});
+```
+
+### Type-Safe Caching
+```typescript
+// ✅ Type-safe caching service
+@Injectable({ providedIn: 'root' })
+export class CacheService {
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+  private readonly TTL = 5 * 60 * 1000; // 5 minutes
+
+  set<T>(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  get<T>(key: string): T | null {
+    const item = this.cache.get(key);
+
+    if (!item) {
+      return null;
+    }
+
+    if (Date.now() - item.timestamp > this.TTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.data as T;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use strict TypeScript configuration
+- Prefer interfaces over types for object shapes
+- Use utility types appropriately
+- Implement proper error handling with typed errors
+- Use generic constraints for type safety
+- Follow consistent naming conventions
+- Use barrel exports for clean imports
+- Implement proper testing with typed utilities
+
+### Don'ts ❌
+- Use `any` type without justification
+- Ignore TypeScript errors with `@ts-ignore`
+- Use unconstrained index signatures
+- Mix different naming conventions
+- Create overly complex type definitions
+- Skip type annotations for public APIs
+- Use loose typing for critical data structures
+
+This comprehensive guide ensures type-safe, maintainable Angular applications with proper TypeScript usage patterns.

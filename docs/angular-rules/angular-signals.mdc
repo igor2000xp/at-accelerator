@@ -1,0 +1,678 @@
+# Angular Signals Rules
+
+## Source Attribution
+**Source**: [GitHub - Angular Signal Documentation](https://github.com/binsondev/angular_signal_doc)
+**Purpose**: Comprehensive signal-based reactivity guidelines and best practices
+
+## Signal Fundamentals
+
+### 1. Basic Signal Creation and Usage
+```typescript
+// ✅ Basic signal creation
+import { signal, computed, effect } from '@angular/core';
+
+@Component({
+  selector: 'app-signal-demo',
+  template: `
+    <div>
+      <h2>Count: {{ count() }}</h2>
+      <p>Doubled: {{ doubled() }}</p>
+      <button (click)="increment()">Increment</button>
+      <button (click)="reset()">Reset</button>
+    </div>
+  `
+})
+export class SignalDemoComponent {
+  // Writable signal
+  count = signal(0);
+
+  // Computed signal
+  doubled = computed(() => this.count() * 2);
+
+  // Effect for side effects
+  constructor() {
+    effect(() => {
+      console.log(`Count changed to: ${this.count()}`);
+    });
+  }
+
+  increment(): void {
+    this.count.update(current => current + 1);
+  }
+
+  reset(): void {
+    this.count.set(0);
+  }
+}
+```
+
+### 2. Signal Types and Patterns
+```typescript
+// ✅ Different signal types
+export class SignalTypesComponent {
+  // Writable signal with initial value
+  name = signal('John Doe');
+
+  // Writable signal with complex object
+  user = signal({
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    isActive: true
+  });
+
+  // Writable signal with array
+  items = signal<string[]>([]);
+
+  // Computed signal based on other signals
+  userDisplayName = computed(() => {
+    const user = this.user();
+    return user.isActive ? user.name : `${user.name} (Inactive)`;
+  });
+
+  // Computed signal with multiple dependencies
+  activeUserCount = computed(() => {
+    return this.items().filter(item => item.includes('active')).length;
+  });
+
+  // Computed signal with conditional logic
+  userStatus = computed(() => {
+    const user = this.user();
+    if (user.isActive) {
+      return 'Active';
+    } else if (user.email.includes('admin')) {
+      return 'Admin (Inactive)';
+    } else {
+      return 'Inactive';
+    }
+  });
+}
+```
+
+### 3. Signal Updates and Mutations
+```typescript
+// ✅ Proper signal updates
+export class SignalUpdatesComponent {
+  user = signal({
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    preferences: {
+      theme: 'light',
+      notifications: true
+    }
+  });
+
+  // Update entire signal value
+  updateUser(newUser: any): void {
+    this.user.set(newUser);
+  }
+
+  // Update using update function
+  updateUserName(newName: string): void {
+    this.user.update(current => ({
+      ...current,
+      name: newName
+    }));
+  }
+
+  // Update nested properties
+  updateUserTheme(theme: 'light' | 'dark'): void {
+    this.user.update(current => ({
+      ...current,
+      preferences: {
+        ...current.preferences,
+        theme
+      }
+    }));
+  }
+
+  // Update array signal
+  items = signal<string[]>([]);
+
+  addItem(item: string): void {
+    this.items.update(current => [...current, item]);
+  }
+
+  removeItem(index: number): void {
+    this.items.update(current => current.filter((_, i) => i !== index));
+  }
+
+  updateItem(index: number, newItem: string): void {
+    this.items.update(current =>
+      current.map((item, i) => i === index ? newItem : item)
+    );
+  }
+}
+```
+
+### 4. Computed Signals
+```typescript
+// ✅ Computed signal patterns
+export class ComputedSignalsComponent {
+  users = signal<User[]>([]);
+  filterText = signal('');
+  sortBy = signal<'name' | 'email'>('name');
+
+  // Computed signal with filtering
+  filteredUsers = computed(() => {
+    const users = this.users();
+    const filter = this.filterText().toLowerCase();
+
+    if (!filter) return users;
+
+    return users.filter(user =>
+      user.name.toLowerCase().includes(filter) ||
+      user.email.toLowerCase().includes(filter)
+    );
+  });
+
+  // Computed signal with sorting
+  sortedUsers = computed(() => {
+    const users = this.filteredUsers();
+    const sortBy = this.sortBy();
+
+    return [...users].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
+      } else {
+        return a.email.localeCompare(b.email);
+      }
+    });
+  });
+
+  // Computed signal with aggregation
+  userStats = computed(() => {
+    const users = this.users();
+    return {
+      total: users.length,
+      active: users.filter(u => u.isActive).length,
+      inactive: users.filter(u => !u.isActive).length
+    };
+  });
+
+  // Computed signal with conditional logic
+  hasActiveUsers = computed(() => {
+    return this.userStats().active > 0;
+  });
+
+  // Computed signal with error handling
+  safeUserCount = computed(() => {
+    try {
+      return this.users().length;
+    } catch (error) {
+      console.error('Error computing user count:', error);
+      return 0;
+    }
+  });
+}
+```
+
+### 5. Effects and Side Effects
+```typescript
+// ✅ Effect patterns
+export class EffectsComponent {
+  user = signal<User | null>(null);
+  theme = signal<'light' | 'dark'>('light');
+
+  constructor() {
+    // Effect for logging
+    effect(() => {
+      const user = this.user();
+      if (user) {
+        console.log(`User logged in: ${user.name}`);
+      }
+    });
+
+    // Effect for theme changes
+    effect(() => {
+      const theme = this.theme();
+      document.body.setAttribute('data-theme', theme);
+    });
+
+    // Effect with cleanup
+    effect((onCleanup) => {
+      const user = this.user();
+      if (user) {
+        const interval = setInterval(() => {
+          this.updateUserActivity();
+        }, 30000);
+
+        onCleanup(() => {
+          clearInterval(interval);
+        });
+      }
+    });
+
+    // Effect with error handling
+    effect(() => {
+      try {
+        const user = this.user();
+        if (user && !user.email) {
+          console.warn('User missing email');
+        }
+      } catch (error) {
+        console.error('Effect error:', error);
+      }
+    });
+  }
+
+  private updateUserActivity(): void {
+    // Update user activity
+  }
+}
+```
+
+### 6. Signal in Services
+```typescript
+// ✅ Service with signals
+@Injectable({ providedIn: 'root' })
+export class UserService {
+  private usersSignal = signal<User[]>([]);
+  private loadingSignal = signal(false);
+  private errorSignal = signal<string | null>(null);
+
+  // Public readonly signals
+  readonly users = this.usersSignal.asReadonly();
+  readonly loading = this.loadingSignal.asReadonly();
+  readonly error = this.errorSignal.asReadonly();
+
+  // Computed signals
+  readonly activeUsers = computed(() =>
+    this.users().filter(user => user.isActive)
+  );
+
+  readonly userCount = computed(() => this.users().length);
+
+  constructor(private http: HttpClient) {}
+
+  loadUsers(): void {
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    this.http.get<User[]>('/api/users')
+      .pipe(
+        finalize(() => this.loadingSignal.set(false))
+      )
+      .subscribe({
+        next: (users) => {
+          this.usersSignal.set(users);
+        },
+        error: (error) => {
+          this.errorSignal.set(error.message);
+        }
+      });
+  }
+
+  addUser(user: Omit<User, 'id'>): void {
+    this.http.post<User>('/api/users', user)
+      .subscribe({
+        next: (newUser) => {
+          this.usersSignal.update(users => [...users, newUser]);
+        },
+        error: (error) => {
+          this.errorSignal.set(error.message);
+        }
+      });
+  }
+
+  updateUser(id: number, updates: Partial<User>): void {
+    this.http.patch<User>(`/api/users/${id}`, updates)
+      .subscribe({
+        next: (updatedUser) => {
+          this.usersSignal.update(users =>
+            users.map(user => user.id === id ? updatedUser : user)
+          );
+        },
+        error: (error) => {
+          this.errorSignal.set(error.message);
+        }
+      });
+  }
+
+  deleteUser(id: number): void {
+    this.http.delete(`/api/users/${id}`)
+      .subscribe({
+        next: () => {
+          this.usersSignal.update(users =>
+            users.filter(user => user.id !== id)
+          );
+        },
+        error: (error) => {
+          this.errorSignal.set(error.message);
+        }
+      });
+  }
+}
+```
+
+### 7. Signal in Components
+```typescript
+// ✅ Component using signals
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <div class="user-list">
+      <div *ngIf="userService.loading()" class="loading">
+        Loading users...
+      </div>
+
+      <div *ngIf="userService.error()" class="error">
+        {{ userService.error() }}
+      </div>
+
+      <div *ngIf="!userService.loading() && !userService.error()">
+        <h3>Users ({{ userService.userCount() }})</h3>
+
+        <div class="filters">
+          <input
+            [value]="filterText()"
+            (input)="updateFilter($event)"
+            placeholder="Filter users...">
+
+          <select [value]="sortBy()" (change)="updateSort($event)">
+            <option value="name">Sort by Name</option>
+            <option value="email">Sort by Email</option>
+          </select>
+        </div>
+
+        <div class="users">
+          <div
+            *ngFor="let user of filteredAndSortedUsers(); trackBy: trackByUserId"
+            class="user-item"
+            [class.active]="user.isActive">
+            <h4>{{ user.name }}</h4>
+            <p>{{ user.email }}</p>
+            <span class="status">{{ user.isActive ? 'Active' : 'Inactive' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+})
+export class UserListComponent implements OnInit {
+  filterText = signal('');
+  sortBy = signal<'name' | 'email'>('name');
+
+  constructor(public userService: UserService) {}
+
+  ngOnInit(): void {
+    this.userService.loadUsers();
+  }
+
+  // Computed signal for filtered and sorted users
+  filteredAndSortedUsers = computed(() => {
+    const users = this.userService.users();
+    const filter = this.filterText().toLowerCase();
+    const sortBy = this.sortBy();
+
+    let filtered = users;
+    if (filter) {
+      filtered = users.filter(user =>
+        user.name.toLowerCase().includes(filter) ||
+        user.email.toLowerCase().includes(filter)
+      );
+    }
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
+      } else {
+        return a.email.localeCompare(b.email);
+      }
+    });
+  });
+
+  updateFilter(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.filterText.set(target.value);
+  }
+
+  updateSort(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    this.sortBy.set(target.value as 'name' | 'email');
+  }
+
+  trackByUserId = (index: number, user: User): number => user.id;
+}
+```
+
+### 8. Signal with Forms
+```typescript
+// ✅ Signal-based forms
+@Component({
+  selector: 'app-signal-form',
+  template: `
+    <form (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input
+          id="name"
+          type="text"
+          [value]="formData().name"
+          (input)="updateName($event)"
+          [class.invalid]="nameError()">
+        <div *ngIf="nameError()" class="error">{{ nameError() }}</div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          [value]="formData().email"
+          (input)="updateEmail($event)"
+          [class.invalid]="emailError()">
+        <div *ngIf="emailError()" class="error">{{ emailError() }}</div>
+      </div>
+
+      <button type="submit" [disabled]="!isFormValid()">
+        Submit
+      </button>
+    </form>
+  `
+})
+export class SignalFormComponent {
+  formData = signal({
+    name: '',
+    email: ''
+  });
+
+  // Computed signals for validation
+  nameError = computed(() => {
+    const name = this.formData().name;
+    if (!name) return 'Name is required';
+    if (name.length < 2) return 'Name must be at least 2 characters';
+    return null;
+  });
+
+  emailError = computed(() => {
+    const email = this.formData().email;
+    if (!email) return 'Email is required';
+    if (!this.isValidEmail(email)) return 'Please enter a valid email';
+    return null;
+  });
+
+  isFormValid = computed(() => {
+    return !this.nameError() && !this.emailError();
+  });
+
+  updateName(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.formData.update(current => ({
+      ...current,
+      name: target.value
+    }));
+  }
+
+  updateEmail(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.formData.update(current => ({
+      ...current,
+      email: target.value
+    }));
+  }
+
+  onSubmit(): void {
+    if (this.isFormValid()) {
+      console.log('Form submitted:', this.formData());
+    }
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+}
+```
+
+### 9. Signal Performance Optimization
+```typescript
+// ✅ Performance optimization with signals
+export class OptimizedSignalsComponent {
+  users = signal<User[]>([]);
+  filterText = signal('');
+
+  // Memoized computed signal
+  filteredUsers = computed(() => {
+    const users = this.users();
+    const filter = this.filterText().toLowerCase();
+
+    if (!filter) return users;
+
+    return users.filter(user =>
+      user.name.toLowerCase().includes(filter) ||
+      user.email.toLowerCase().includes(filter)
+    );
+  });
+
+  // Computed signal with expensive operation
+  expensiveCalculation = computed(() => {
+    const users = this.filteredUsers();
+    // Expensive operation
+    return this.performExpensiveOperation(users);
+  });
+
+  // Computed signal with caching
+  cachedResult = computed(() => {
+    const users = this.filteredUsers();
+    const cacheKey = users.length + '_' + this.filterText();
+
+    // In a real app, you might use a proper caching mechanism
+    return this.calculateWithCache(users, cacheKey);
+  });
+
+  private performExpensiveOperation(users: User[]): any {
+    // Simulate expensive operation
+    return users.reduce((acc, user) => {
+      // Complex calculation
+      return acc + user.name.length;
+    }, 0);
+  }
+
+  private calculateWithCache(users: User[], cacheKey: string): any {
+    // Implement caching logic
+    return this.performExpensiveOperation(users);
+  }
+}
+```
+
+### 10. Signal Testing
+```typescript
+// ✅ Testing signals
+describe('SignalDemoComponent', () => {
+  let component: SignalDemoComponent;
+
+  beforeEach(() => {
+    component = new SignalDemoComponent();
+  });
+
+  it('should create with initial count of 0', () => {
+    expect(component.count()).toBe(0);
+  });
+
+  it('should double the count', () => {
+    expect(component.doubled()).toBe(0);
+
+    component.increment();
+    expect(component.count()).toBe(1);
+    expect(component.doubled()).toBe(2);
+  });
+
+  it('should reset count to 0', () => {
+    component.increment();
+    component.increment();
+    expect(component.count()).toBe(2);
+
+    component.reset();
+    expect(component.count()).toBe(0);
+    expect(component.doubled()).toBe(0);
+  });
+});
+
+describe('UserService', () => {
+  let service: UserService;
+  let httpMock: jasmine.SpyObj<HttpClient>;
+
+  beforeEach(() => {
+    httpMock = jasmine.createSpyObj('HttpClient', ['get', 'post', 'patch', 'delete']);
+    service = new UserService(httpMock);
+  });
+
+  it('should load users and update signals', () => {
+    const mockUsers = [
+      { id: 1, name: 'John', email: 'john@example.com', isActive: true }
+    ];
+
+    httpMock.get.and.returnValue(of(mockUsers));
+
+    service.loadUsers();
+
+    expect(service.users()).toEqual(mockUsers);
+    expect(service.loading()).toBe(false);
+    expect(service.error()).toBeNull();
+  });
+
+  it('should handle errors', () => {
+    const error = new Error('Network error');
+    httpMock.get.and.returnValue(throwError(() => error));
+
+    service.loadUsers();
+
+    expect(service.error()).toBe('Network error');
+    expect(service.loading()).toBe(false);
+  });
+});
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use signals for reactive state management
+- Create computed signals for derived state
+- Use effects for side effects
+- Implement proper error handling in signals
+- Use readonly signals for public APIs
+- Optimize computed signals for performance
+- Test signals thoroughly
+- Use signals in services for global state
+- Implement proper cleanup in effects
+- Use signals with forms for reactive validation
+
+### Don'ts ❌
+- Mutate signal values directly
+- Create circular dependencies in computed signals
+- Forget to handle errors in effects
+- Use signals for everything (use regular properties when appropriate)
+- Ignore performance implications of computed signals
+- Skip testing signal logic
+- Create overly complex computed signals
+- Forget to implement proper cleanup
+- Use signals for static data
+- Violate signal immutability principles
+
+This comprehensive guide ensures proper Angular Signals usage following the latest Angular reactivity patterns and best practices.
+description:
+globs:
+alwaysApply: false
+---

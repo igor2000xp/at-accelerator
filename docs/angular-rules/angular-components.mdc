@@ -1,0 +1,562 @@
+# Angular Components Rules
+
+## Source Attribution
+**Source**: [Context7 - Angular Components](https://context7.com/angular/components)
+**Purpose**: Comprehensive component development guidelines and best practices
+
+## Component Design Principles
+
+### 1. Single Responsibility Principle
+```typescript
+// ✅ Good: Single responsibility component
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <div class="user-list">
+      <app-user-card
+        *ngFor="let user of users; trackBy: trackByUserId"
+        [user]="user"
+        (userSelected)="onUserSelected($event)">
+      </app-user-card>
+    </div>
+  `
+})
+export class UserListComponent {
+  @Input() users: User[] = [];
+  @Output() userSelected = new EventEmitter<User>();
+
+  trackByUserId = (index: number, user: User): number => user.id;
+
+  onUserSelected(user: User): void {
+    this.userSelected.emit(user);
+  }
+}
+
+// ❌ Bad: Component doing too many things
+@Component({
+  selector: 'app-user-management',
+  template: `
+    <div>
+      <!-- User list -->
+      <div *ngFor="let user of users">
+        {{ user.name }}
+      </div>
+
+      <!-- User form -->
+      <form (ngSubmit)="onSubmit()">
+        <input [(ngModel)]="newUser.name">
+        <button type="submit">Add User</button>
+      </form>
+
+      <!-- User statistics -->
+      <div>
+        <h3>Statistics</h3>
+        <p>Total users: {{ users.length }}</p>
+      </div>
+    </div>
+  `
+})
+export class UserManagementComponent {
+  // This component violates SRP by handling list, form, and statistics
+}
+```
+
+### 2. Input/Output Design
+```typescript
+// ✅ Good: Clear input/output interface
+@Component({
+  selector: 'app-user-card',
+  template: `
+    <div class="user-card" [class.selected]="isSelected">
+      <h3>{{ user.name }}</h3>
+      <p>{{ user.email }}</p>
+      <div class="actions">
+        <button (click)="onEdit()">Edit</button>
+        <button (click)="onDelete()">Delete</button>
+      </div>
+    </div>
+  `
+})
+export class UserCardComponent {
+  @Input() user!: User;
+  @Input() isSelected = false;
+  @Output() edit = new EventEmitter<User>();
+  @Output() delete = new EventEmitter<User>();
+  @Output() select = new EventEmitter<User>();
+
+  onEdit(): void {
+    this.edit.emit(this.user);
+  }
+
+  onDelete(): void {
+    this.delete.emit(this.user);
+  }
+
+  onSelect(): void {
+    this.select.emit(this.user);
+  }
+}
+
+// ✅ Good: Using interfaces for complex inputs
+interface UserCardConfig {
+  showActions: boolean;
+  showEmail: boolean;
+  theme: 'light' | 'dark';
+}
+
+@Component({
+  selector: 'app-user-card',
+  template: `
+    <div class="user-card" [class]="config.theme">
+      <h3>{{ user.name }}</h3>
+      <p *ngIf="config.showEmail">{{ user.email }}</p>
+      <div *ngIf="config.showActions" class="actions">
+        <button (click)="onEdit()">Edit</button>
+        <button (click)="onDelete()">Delete</button>
+      </div>
+    </div>
+  `
+})
+export class UserCardComponent {
+  @Input() user!: User;
+  @Input() config: UserCardConfig = {
+    showActions: true,
+    showEmail: true,
+    theme: 'light'
+  };
+  @Output() edit = new EventEmitter<User>();
+  @Output() delete = new EventEmitter<User>();
+}
+```
+
+### 3. Content Projection
+```typescript
+// ✅ Good: Flexible content projection
+@Component({
+  selector: 'app-card',
+  template: `
+    <div class="card">
+      <div class="card-header">
+        <ng-content select="[card-header]"></ng-content>
+      </div>
+      <div class="card-body">
+        <ng-content></ng-content>
+      </div>
+      <div class="card-footer">
+        <ng-content select="[card-footer]"></ng-content>
+      </div>
+    </div>
+  `
+})
+export class CardComponent {}
+
+// Usage:
+// <app-card>
+//   <h2 card-header>Card Title</h2>
+//   <p>Card content goes here</p>
+//   <button card-footer>Action</button>
+// </app-card>
+
+// ✅ Good: Conditional content projection
+@Component({
+  selector: 'app-conditional-card',
+  template: `
+    <div class="card">
+      <ng-content *ngIf="showHeader" select="[card-header]"></ng-content>
+      <div class="card-body">
+        <ng-content></ng-content>
+      </div>
+      <ng-content *ngIf="showFooter" select="[card-footer]"></ng-content>
+    </div>
+  `
+})
+export class ConditionalCardComponent {
+  @Input() showHeader = true;
+  @Input() showFooter = true;
+}
+```
+
+### 4. ViewChild and ViewChildren
+```typescript
+// ✅ Good: Using ViewChild for component communication
+@Component({
+  selector: 'app-parent',
+  template: `
+    <app-child #childComponent></app-child>
+    <button (click)="callChildMethod()">Call Child Method</button>
+  `
+})
+export class ParentComponent {
+  @ViewChild('childComponent') childComponent!: ChildComponent;
+
+  callChildMethod(): void {
+    this.childComponent.doSomething();
+  }
+}
+
+@Component({
+  selector: 'app-child',
+  template: `<div>Child Component</div>`
+})
+export class ChildComponent {
+  doSomething(): void {
+    console.log('Child method called');
+  }
+}
+
+// ✅ Good: Using ViewChildren for multiple children
+@Component({
+  selector: 'app-parent',
+  template: `
+    <app-child *ngFor="let item of items" #childComponents></app-child>
+    <button (click)="callAllChildren()">Call All Children</button>
+  `
+})
+export class ParentComponent {
+  @ViewChildren('childComponents') childComponents!: QueryList<ChildComponent>;
+
+  callAllChildren(): void {
+    this.childComponents.forEach(child => child.doSomething());
+  }
+}
+```
+
+### 5. Component Communication Patterns
+```typescript
+// ✅ Good: Service-based communication
+@Injectable({ providedIn: 'root' })
+export class ComponentCommunicationService {
+  private userSelectedSubject = new Subject<User>();
+  userSelected$ = this.userSelectedSubject.asObservable();
+
+  selectUser(user: User): void {
+    this.userSelectedSubject.next(user);
+  }
+}
+
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <div *ngFor="let user of users">
+      <button (click)="selectUser(user)">{{ user.name }}</button>
+    </div>
+  `
+})
+export class UserListComponent {
+  constructor(private communicationService: ComponentCommunicationService) {}
+
+  selectUser(user: User): void {
+    this.communicationService.selectUser(user);
+  }
+}
+
+@Component({
+  selector: 'app-user-detail',
+  template: `<div>{{ selectedUser?.name }}</div>`
+})
+export class UserDetailComponent implements OnInit, OnDestroy {
+  selectedUser?: User;
+  private destroy$ = new Subject<void>();
+
+  constructor(private communicationService: ComponentCommunicationService) {}
+
+  ngOnInit(): void {
+    this.communicationService.userSelected$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => this.selectedUser = user);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+```
+
+### 6. Smart vs Presentational Components
+```typescript
+// ✅ Good: Smart component (container)
+@Component({
+  selector: 'app-user-management',
+  template: `
+    <div class="user-management">
+      <app-user-list
+        [users]="users$ | async"
+        (userSelected)="onUserSelected($event)">
+      </app-user-list>
+
+      <app-user-detail
+        [user]="selectedUser$ | async"
+        (userUpdated)="onUserUpdated($event)">
+      </app-user-detail>
+    </div>
+  `
+})
+export class UserManagementComponent {
+  users$ = this.userService.getUsers();
+  selectedUser$ = this.userService.getSelectedUser();
+
+  constructor(private userService: UserService) {}
+
+  onUserSelected(user: User): void {
+    this.userService.selectUser(user);
+  }
+
+  onUserUpdated(user: User): void {
+    this.userService.updateUser(user);
+  }
+}
+
+// ✅ Good: Presentational component (dumb)
+@Component({
+  selector: 'app-user-detail',
+  template: `
+    <div class="user-detail" *ngIf="user">
+      <h2>{{ user.name }}</h2>
+      <p>{{ user.email }}</p>
+      <button (click)="onEdit()">Edit</button>
+    </div>
+  `
+})
+export class UserDetailComponent {
+  @Input() user?: User;
+  @Output() userUpdated = new EventEmitter<User>();
+
+  onEdit(): void {
+    if (this.user) {
+      this.userUpdated.emit(this.user);
+    }
+  }
+}
+```
+
+### 7. Component Lifecycle Management
+```typescript
+// ✅ Good: Proper lifecycle management
+@Component({
+  selector: 'app-lifecycle-demo',
+  template: `<div>{{ message }}</div>`
+})
+export class LifecycleDemoComponent implements
+  OnInit, OnDestroy, OnChanges, AfterViewInit, AfterContentInit {
+
+  @Input() data!: any;
+  @ViewChild('templateRef') templateRef!: ElementRef;
+
+  private destroy$ = new Subject<void>();
+
+  constructor() {
+    console.log('Constructor called');
+  }
+
+  ngOnInit(): void {
+    console.log('ngOnInit called');
+    // Initialize component
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('ngOnChanges called', changes);
+    // Handle input changes
+    if (changes['data'] && !changes['data'].firstChange) {
+      this.handleDataChange(changes['data'].currentValue);
+    }
+  }
+
+  ngAfterContentInit(): void {
+    console.log('ngAfterContentInit called');
+    // Content projection is ready
+  }
+
+  ngAfterViewInit(): void {
+    console.log('ngAfterViewInit called');
+    // View is ready
+    this.initializeView();
+  }
+
+  ngOnDestroy(): void {
+    console.log('ngOnDestroy called');
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private handleDataChange(newData: any): void {
+    // Handle data changes
+  }
+
+  private initializeView(): void {
+    // Initialize view-related logic
+  }
+}
+```
+
+### 8. Component Testing
+```typescript
+// ✅ Good: Comprehensive component testing
+describe('UserCardComponent', () => {
+  let component: UserCardComponent;
+  let fixture: ComponentFixture<UserCardComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [UserCardComponent]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UserCardComponent);
+    component = fixture.componentInstance;
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('should display user name', () => {
+    const user = { id: 1, name: 'John Doe', email: 'john@example.com' };
+    component.user = user;
+    fixture.detectChanges();
+
+    const nameElement = fixture.nativeElement.querySelector('h3');
+    expect(nameElement.textContent).toContain('John Doe');
+  });
+
+  it('should emit edit event when edit button is clicked', () => {
+    const user = { id: 1, name: 'John Doe', email: 'john@example.com' };
+    component.user = user;
+    fixture.detectChanges();
+
+    const editSpy = spyOn(component.edit, 'emit');
+    const editButton = fixture.nativeElement.querySelector('button');
+    editButton.click();
+
+    expect(editSpy).toHaveBeenCalledWith(user);
+  });
+
+  it('should apply selected class when isSelected is true', () => {
+    component.isSelected = true;
+    fixture.detectChanges();
+
+    const cardElement = fixture.nativeElement.querySelector('.user-card');
+    expect(cardElement.classList).toContain('selected');
+  });
+});
+```
+
+### 9. Component Performance Optimization
+```typescript
+// ✅ Good: OnPush change detection
+@Component({
+  selector: 'app-optimized-user-card',
+  template: `
+    <div class="user-card">
+      <h3>{{ user.name }}</h3>
+      <p>{{ user.email }}</p>
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class OptimizedUserCardComponent {
+  @Input() user!: User;
+
+  // Use trackBy for performance in parent components
+  static trackByUserId(index: number, user: User): number {
+    return user.id;
+  }
+}
+
+// ✅ Good: Memoized getters
+@Component({
+  selector: 'app-user-stats',
+  template: `
+    <div class="user-stats">
+      <p>Total users: {{ totalUsers }}</p>
+      <p>Active users: {{ activeUsers }}</p>
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class UserStatsComponent {
+  @Input() users: User[] = [];
+
+  get totalUsers(): number {
+    return this.users.length;
+  }
+
+  get activeUsers(): number {
+    return this.users.filter(user => user.isActive).length;
+  }
+}
+```
+
+### 10. Component Accessibility
+```typescript
+// ✅ Good: Accessible component
+@Component({
+  selector: 'app-accessible-user-card',
+  template: `
+    <div class="user-card"
+         role="article"
+         [attr.aria-labelledby]="titleId"
+         [attr.aria-describedby]="descriptionId">
+      <h3 [id]="titleId">{{ user.name }}</h3>
+      <p [id]="descriptionId">{{ user.email }}</p>
+      <div class="actions" role="group" aria-label="User actions">
+        <button (click)="onEdit()"
+                aria-label="Edit user {{ user.name }}">
+          Edit
+        </button>
+        <button (click)="onDelete()"
+                aria-label="Delete user {{ user.name }}">
+          Delete
+        </button>
+      </div>
+    </div>
+  `
+})
+export class AccessibleUserCardComponent {
+  @Input() user!: User;
+  @Output() edit = new EventEmitter<User>();
+  @Output() delete = new EventEmitter<User>();
+
+  titleId = `user-title-${Math.random().toString(36).substr(2, 9)}`;
+  descriptionId = `user-description-${Math.random().toString(36).substr(2, 9)}`;
+
+  onEdit(): void {
+    this.edit.emit(this.user);
+  }
+
+  onDelete(): void {
+    this.delete.emit(this.user);
+  }
+}
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Follow single responsibility principle
+- Use clear input/output interfaces
+- Implement proper content projection
+- Use OnPush change detection for performance
+- Write comprehensive tests
+- Implement proper accessibility features
+- Use trackBy functions for ngFor
+- Handle component lifecycle properly
+- Use services for complex communication
+- Create reusable presentational components
+
+### Don'ts ❌
+- Create components that do too many things
+- Use complex input/output interfaces
+- Ignore accessibility requirements
+- Skip component testing
+- Use manual change detection unnecessarily
+- Forget to implement OnDestroy
+- Create tightly coupled components
+- Use ViewChild for simple communication
+- Ignore performance considerations
+- Violate component design principles
+
+This comprehensive guide ensures proper Angular component development following industry best practices and Angular team recommendations.
+description:
+globs:
+alwaysApply: false
+---
