@@ -30,6 +30,16 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.content span')?.textContent).toContain('at-accelerator app is running!');
+    expect(compiled.querySelector('.logo')?.textContent).toContain('TV Show Tracker');
+  });
+
+  it('should render navigation links', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const links = compiled.querySelectorAll('a.button');
+    expect(links.length).toBe(2);
+    expect(links[0].textContent).toContain('Search');
+    expect(links[1].textContent).toContain('My favorites');
   });
 });
