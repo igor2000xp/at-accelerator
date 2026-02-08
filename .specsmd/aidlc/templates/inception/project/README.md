@@ -8,12 +8,12 @@ The `memory-bank/project/` directory stores information about your overall proje
 
 ## Files to Create
 
-- **project-brief.md**: High-level project overview, goals, and scope
+- **projectbrief.md**: High-level project overview, goals, and scope
 - **tech-stack.md**: Technology choices and rationale
 - **team.md**: Team structure and roles
 - **conventions.md**: Coding standards, naming conventions, etc.
 
-## Example: project-brief.md
+## Example: projectbrief.md
 
 ```markdown
 ---
@@ -48,7 +48,7 @@ updated: 2024-11-22
 
 ## Getting Started
 
-1. Create `project-brief.md` with your project overview
+1. Create `projectbrief.md` with your project overview
 2. Document your tech stack in `tech-stack.md`
 3. Add any other project-level context as needed
 
