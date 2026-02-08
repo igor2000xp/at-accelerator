@@ -13,14 +13,14 @@ export class FavCrudService {
   private readonly KEY = environment.FAVORITES_KEY;
 
   constructor() {
+    this.loadFavorites();
     effect(() => this.localStorageService.setFavoritesStore(this.KEY, this.favData()));
-    // this.loadFavorites();
   }
 
-  // private loadFavorites(): void {
-  //   const stored = this.localStorageService.getFavoritesStore<TvShow[]>(this.KEY) || [];
-  //   this.favData.set(stored);
-  // }
+  private loadFavorites(): void {
+    const stored = this.localStorageService.getFavoritesStore<TvShow[]>(this.KEY) || [];
+    this.favData.set(stored);
+  }
 
   // getLocalStorageFavorites(): Signal<TvShow[]> {
   //   // this.favData.set(this.localStorageService.getFavoritesStore<TvShow[]>('fa

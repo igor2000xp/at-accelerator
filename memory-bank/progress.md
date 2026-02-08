@@ -7,3 +7,5 @@
 - **Done**: Established `memory-bank/` directory structure.
 - **Done**: Renamed `projectbrief.md` to `projectbrief.md` for consistency.
 - **Done**: Created `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`.
+- **Done**: Updated Memory Bank content to match the current Angular 18 codebase, module/standalone structure, and API/favorites implementation.
+- **Done**: Rehydrated favorites from Local Storage on app start and updated Memory Bank accordingly.

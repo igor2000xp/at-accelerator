@@ -1,18 +1,16 @@
 # Active Context
 
 ## Current Focus
-Establishing the AI-Enhanced Development Workflow and Memory Bank structure to ensure high-quality, consistent assistance from the AI Agents.
+Implementing favorites rehydration and keeping Memory Bank aligned with the codebase.
 
 ## Active Tasks
-- [x] Create `AGENTS.md` with strict Memory Bank rules.
-- [x] Rename `projectbrief.md` to `projectbrief.md`.
-- [ ] Populate `memory-bank/` with context files.
+- [x] Implement favorites rehydration from Local Storage.
+- [x] Update Memory Bank files to reflect the change.
 
 ## Recent Progress
-- Configured project with `.cursorrules` and `.cursorignore`.
-- Setup `docs/ai-workflow` documentation.
-- Adopted "Rigid Memory Bank" mode in `AGENTS.md`.
+- Verified the app uses an NgModule-based root with some standalone components.
+- Confirmed API access via an HTTP interceptor and Episodate base URL.
+- Confirmed favorites state uses signals with Local Storage read/write.
 
 ## Open Questions
-- Are there specific naming conventions for the "Favorites" service?
-- confirming the exact endpoint structure for Episodate API in the service implementation.
+- None.

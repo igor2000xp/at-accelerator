@@ -5,7 +5,7 @@
 - **Language**: TypeScript 5.4.5
 - **Styling**: mini.css v3.0.1 (Minimalist, responsive CSS framework)
 - **Package Manager**: npm
-- **Build Tool**: Angular CLI
+- **Build Tool**: Angular CLI 18.1.2
 
 ## Development Environment
 - **IDE**: Cursor AI
@@ -15,10 +15,10 @@
 
 ## Key Constraints
 - **Public API**: Depends on Episodate API (`https://www.episodate.com/api/`). Rate limits and uptime are external factors.
-- **No Backend**: Review "Favorites" persistence is strictly client-side (Local Storage).
+- **No Backend**: Favorites persistence is strictly client-side (Local Storage).
 
 ## Commands
-- **Serve**: `ng serve`
-- **Build**: `ng build`
-- **Test**: `ng test` (Karma/Jasmine)
-- **Lint**: `ng lint`
+- **Serve**: `npm run start` (or `ng serve`)
+- **Build**: `npm run build` (or `ng build`)
+- **Test**: `npm run test` (Karma/Jasmine)
+- **Lint**: `npm run lint`
