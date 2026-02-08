@@ -16,6 +16,19 @@ Prepare a clean git commit by reviewing changes, staging the right files, and dr
 3. Stage files
 4. Draft commit message
 
+## Repo-Specific Commit Conventions
+
+Follow a Conventional Commits-style format based on repo examples:
+
+`type(scope?): subject`
+
+- Use a lowercase `type` like `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- `scope` is optional and should be short (feature, package, or area).
+- Keep the subject imperative and concise, no trailing period.
+- Add a body only when it clarifies what/why; use short bullet lines.
+
+If uncertain about scope or type, ask the user which they prefer.
+
 ### 1. Inspect repository state
 
 Run `git status -sb` and `git diff` (and `git diff --staged` if needed) to understand what changed. If the repo is large, limit diffs to files relevant to the user’s request.
