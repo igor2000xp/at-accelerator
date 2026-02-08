@@ -1,0 +1,60 @@
+# Cursor AI Configuration for Angular Development
+
+## Project Context
+- **Framework**: Angular 18.1.2
+- **TypeScript**: 5.4.5
+- **Project**: at-accelerator (TV Show Management Application)
+- **Architecture**: Standalone components, reactive forms, RxJS state management
+
+## AI Assistance Configuration
+
+### Context Files Priority
+1. `docs/llms.txt` - Core guidelines for quick reference
+2. `docs/llms-full.txt` - Comprehensive patterns for complex scenarios
+3. `docs/angular-rules/angular-20.mdc` - Official Angular rules
+4. `docs/angular-rules/context7-components.mdc` - Context7 Angular Components rules
+5. `docs/angular-rules/typescript-best-practices.mdc` - TypeScript guidelines
+6. `docs/angular-rules/accessibility-standards.mdc` - Accessibility compliance
+7. `docs/angular-rules/performance-guidelines.mdc` - Performance optimization
+
+### Code Generation Preferences
+- **Components**: Always use standalone components with OnPush change detection
+- **Services**: Injectable with proper DI and error handling
+- **Forms**: Reactive forms with strong typing
+- **State Management**: RxJS with proper subscription cleanup
+- **Testing**: Comprehensive unit tests with TestBed
+- **Documentation**: JSDoc comments for public APIs
+
+### Angular-Specific Patterns
+- Use `app-` prefix for component selectors
+- Implement proper lifecycle hooks (OnInit, OnDestroy)
+- Use trackBy functions in *ngFor loops
+- Prefer async pipe over manual subscriptions
+- Implement proper error boundaries
+- Use Angular CDK for accessible components
+
+### TypeScript Best Practices
+- Strict TypeScript configuration
+- Prefer interfaces over types for object shapes
+- Use utility types appropriately
+- Avoid `any` type - use `unknown` when needed
+- Implement proper generic constraints
+- Use barrel exports for clean imports
+
+### Performance Guidelines
+- OnPush change detection strategy
+- Proper subscription management with takeUntil
+- Lazy loading for modules and components
+- Bundle optimization with tree shaking
+- Virtual scrolling for large lists
+- Debouncing for user inputs
+
+### Accessibility Standards
+- WCAG 2.1 AA compliance
+- Semantic HTML elements
+- Proper ARIA attributes
+- Keyboard navigation support
+- Color contrast ratios (4.5:1 minimum)
+- Screen reader compatibility
+
+This configuration ensures consistent, high-quality Angular development with AI assistance while maintaining performance, accessibility, and maintainability standards.

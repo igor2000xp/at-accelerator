@@ -1,0 +1,129 @@
+# Angular ESLint Best Practices
+
+## Source Attribution
+**Source**: [Context7 - Angular ESLint](https://context7.com/angular-eslint/angular-eslint)
+**Purpose**: Comprehensive ESLint configuration and usage guidelines for Angular projects
+
+## ESLint Configuration Fundamentals
+
+### 1. ESLint Setup
+```json
+// ✅ ESLint configuration example
+{
+  "root": true,
+  "ignorePatterns": ["projects/**/*"],
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parserOptions": {
+        "project": ["tsconfig.json"],
+        "createDefaultProgram": true
+      },
+      "extends": [
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates"
+      ],
+      "rules": {
+        "@angular-eslint/component-class-suffix": ["error", { "suffixes": ["Component"] }],
+        "@angular-eslint/directive-class-suffix": ["error", { "suffixes": ["Directive"] }],
+        "@angular-eslint/no-empty-lifecycle-method": "warn",
+        "@typescript-eslint/explicit-function-return-type": "error",
+        "@typescript-eslint/no-unused-vars": "warn",
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/consistent-type-definitions": ["error", "interface"]
+      }
+    },
+    {
+      "files": ["*.html"],
+      "extends": ["plugin:@angular-eslint/template/recommended"],
+      "rules": {
+        "@angular-eslint/template/accessible-name": "error",
+        "@angular-eslint/template/alt-text": "error",
+        "@angular-eslint/template/no-positive-tabindex": "error"
+      }
+    }
+  ]
+}
+```
+
+### 2. Linting Best Practices
+- Use the official `@angular-eslint` plugin for Angular projects
+- Enforce component and directive suffixes
+- Disallow empty lifecycle methods
+- Require explicit function return types
+- Disallow usage of `any` type
+- Prefer interfaces over type aliases
+- Disallow unused variables
+- Enforce accessibility rules in templates
+- Use Prettier for consistent formatting
+- Integrate linting into CI/CD pipelines
+- Run linting before every commit
+
+### 3. Common Rules
+- `@angular-eslint/component-class-suffix`: Enforce `Component` suffix for components
+- `@angular-eslint/directive-class-suffix`: Enforce `Directive` suffix for directives
+- `@angular-eslint/no-empty-lifecycle-method`: Warn on empty lifecycle methods
+- `@typescript-eslint/explicit-function-return-type`: Require explicit return types
+- `@typescript-eslint/no-unused-vars`: Warn on unused variables
+- `@typescript-eslint/no-explicit-any`: Disallow `any` type
+- `@typescript-eslint/consistent-type-definitions`: Prefer `interface` over `type`
+- `@angular-eslint/template/accessible-name`: Enforce accessible names in templates
+- `@angular-eslint/template/alt-text`: Require alt text for images
+- `@angular-eslint/template/no-positive-tabindex`: Disallow positive tabindex
+
+### 4. Linting in Practice
+```bash
+# ✅ Run linting
+ng lint
+
+# ✅ Fix lint errors automatically
+ng lint --fix
+
+# ✅ Run linting on staged files (with lint-staged)
+npx lint-staged
+```
+
+### 5. Linting and Formatting Integration
+- Use Prettier with ESLint for consistent code formatting
+- Add Prettier config (`.prettierrc`) and ignore file (`.prettierignore`)
+- Integrate with VSCode extensions for auto-formatting
+- Add lint and format scripts to `package.json`
+
+### 6. Testing Lint Rules
+```typescript
+// ✅ Testing lint rules with custom test cases
+describe('ESLint Rules', () => {
+  it('should enforce component class suffix', () => {
+    // ...test implementation
+  });
+});
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use official Angular ESLint plugin
+- Enforce naming conventions
+- Require explicit return types
+- Disallow `any` type
+- Prefer interfaces
+- Enforce accessibility in templates
+- Integrate linting into CI/CD
+- Use Prettier for formatting
+- Test custom lint rules
+
+### Don'ts ❌
+- Ignore lint errors
+- Use `any` type
+- Skip accessibility rules
+- Use inconsistent formatting
+- Skip linting in CI/CD
+- Use type aliases for objects
+- Allow empty lifecycle methods
+- Use positive tabindex
+
+This comprehensive guide ensures proper ESLint usage and configuration for Angular projects following best practices.
+description:
+globs:
+alwaysApply: false
+---

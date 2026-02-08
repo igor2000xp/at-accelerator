@@ -1,0 +1,7 @@
+---
+description: 
+globs: **/*.component.html
+alwaysApply: false
+---
+- Code should obey the rules defined in the .htmlhintrc, and .editorconfig files.
+- Be concise and minimize extraneous prose.

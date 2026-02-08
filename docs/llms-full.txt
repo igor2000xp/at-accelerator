@@ -1,0 +1,738 @@
+# Comprehensive LLM Guidelines for Angular Development
+
+## Advanced Angular Patterns
+
+### State Management Patterns
+
+#### RxJS-Based State Management
+```typescript
+// Recommended: BehaviorSubject for simple state
+@Injectable({ providedIn: 'root' })
+export class StateService {
+  private state$ = new BehaviorSubject<AppState>(initialState);
+
+  getState(): Observable<AppState> {
+    return this.state$.asObservable();
+  }
+
+  updateState(updates: Partial<AppState>): void {
+    this.state$.next({ ...this.state$.value, ...updates });
+  }
+}
+
+// For complex state: Use NgRx or similar
+// Avoid: Manual subscription management without cleanup
+```
+
+#### Component State Patterns
+```typescript
+// Recommended: Local component state with OnPush
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class MyComponent {
+  private destroy$ = new Subject<void>();
+
+  ngOnInit(): void {
+    this.dataService.getData()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(data => this.handleData(data));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}
+```
+
+### Advanced Component Patterns
+
+#### Smart vs Presentational Components
+```typescript
+// Smart Component (Container)
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <app-user-card
+      *ngFor="let user of users$ | async; trackBy: trackByUserId"
+      [user]="user"
+      (userSelected)="onUserSelected($event)">
+    </app-user-card>
+  `
+})
+export class UserListComponent {
+  users$ = this.userService.getUsers();
+
+  trackByUserId = (index: number, user: User): number => user.id;
+}
+
+// Presentational Component (Dumb)
+@Component({
+  selector: 'app-user-card',
+  template: `<div>{{ user.name }}</div>`
+})
+export class UserCardComponent {
+  @Input() user!: User;
+  @Output() userSelected = new EventEmitter<User>();
+}
+```
+
+#### Advanced Lifecycle Management
+```typescript
+// Recommended: Comprehensive lifecycle management
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AdvancedComponent implements OnInit, OnDestroy, OnChanges {
+  private readonly destroy$ = new Subject<void>();
+  private readonly data$ = new BehaviorSubject<Data[]>([]);
+
+  @Input() set config(value: Config) {
+    if (value) {
+      this.loadData(value);
+    }
+  }
+
+  ngOnInit(): void {
+    this.setupSubscriptions();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['config'] && !changes['config'].firstChange) {
+      this.handleConfigChange(changes['config'].currentValue);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupSubscriptions(): void {
+    this.data$
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(300),
+        distinctUntilChanged()
+      )
+      .subscribe(data => this.processData(data));
+  }
+}
+```
+
+## Advanced TypeScript Patterns
+
+### Type Safety Patterns
+
+#### Strict Type Definitions
+```typescript
+// Recommended: Strict interface definitions
+interface User {
+  readonly id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+type UserRole = 'admin' | 'user' | 'moderator';
+
+// Avoid: Loose typing
+interface BadUser {
+  id: any;
+  name: string;
+  [key: string]: any; // Avoid index signatures without constraints
+}
+```
+
+#### Advanced Generic Patterns
+```typescript
+// Recommended: Constrained generics
+interface ApiResponse<T> {
+  data: T;
+  message: string;
+  success: boolean;
+  timestamp: Date;
+}
+
+interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// Service with proper typing
+@Injectable({ providedIn: 'root' })
+export class ApiService {
+  get<T>(endpoint: string): Observable<ApiResponse<T>> {
+    return this.http.get<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`);
+  }
+
+  getPaginated<T>(endpoint: string, page: number, limit: number): Observable<PaginatedResponse<T>> {
+    return this.http.get<PaginatedResponse<T>>(`${this.baseUrl}/${endpoint}`, {
+      params: { page: page.toString(), limit: limit.toString() }
+    });
+  }
+}
+```
+
+#### Utility Type Patterns
+```typescript
+// Recommended: Proper use of utility types
+type CreateUserRequest = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+type UpdateUserRequest = Partial<Omit<User, 'id' | 'createdAt'>>;
+type UserSummary = Pick<User, 'id' | 'name' | 'role'>;
+
+// Advanced utility type patterns
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
+```
+
+## Performance Optimization Patterns
+
+### Advanced Change Detection
+
+#### OnPush Strategy Implementation
+```typescript
+// Recommended: Proper OnPush implementation
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class OptimizedComponent {
+  @Input() data!: Data[];
+  @Output() dataChange = new EventEmitter<Data[]>();
+
+  // Use immutable updates
+  updateData(newData: Data): void {
+    const updatedData = this.data.map(item =>
+      item.id === newData.id ? newData : item
+    );
+    this.dataChange.emit(updatedData);
+  }
+
+  // Use trackBy for performance
+  trackByFn = (index: number, item: Data): number => item.id;
+}
+```
+
+#### Advanced RxJS Patterns
+```typescript
+// Recommended: Optimized RxJS usage
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RxJSComponent {
+  private searchTerm$ = new Subject<string>();
+
+  filteredData$ = this.searchTerm$.pipe(
+    debounceTime(300),
+    distinctUntilChanged(),
+    switchMap(term => this.dataService.search(term)),
+    catchError(error => {
+      console.error('Search error:', error);
+      return of([]);
+    }),
+    shareReplay(1)
+  );
+
+  constructor(private dataService: DataService) {}
+
+  onSearch(term: string): void {
+    this.searchTerm$.next(term);
+  }
+}
+```
+
+### Memory Management Patterns
+
+#### Advanced Subscription Management
+```typescript
+// Recommended: Comprehensive subscription management
+@Component({
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class MemorySafeComponent implements OnInit, OnDestroy {
+  private readonly destroy$ = new Subject<void>();
+  private readonly data$ = new BehaviorSubject<Data[]>([]);
+
+  // Use takeUntil for all subscriptions
+  ngOnInit(): void {
+    this.dataService.getData()
+      .pipe(
+        takeUntil(this.destroy$),
+        retry(3),
+        catchError(error => {
+          this.handleError(error);
+          return EMPTY;
+        })
+      )
+      .subscribe(data => this.data$.next(data));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // Alternative: Use async pipe when possible
+  get displayData$(): Observable<Data[]> {
+    return this.data$.asObservable();
+  }
+}
+```
+
+## Advanced Error Handling Patterns
+
+### Global Error Handling
+```typescript
+// Recommended: Comprehensive error interceptor
+@Injectable()
+export class GlobalErrorInterceptor implements HttpInterceptor {
+  constructor(
+    private errorService: ErrorService,
+    private router: Router
+  ) {}
+
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    return next.handle(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        let errorMessage = 'An error occurred';
+
+        if (error.error instanceof ErrorEvent) {
+          // Client-side error
+          errorMessage = `Error: ${error.error.message}`;
+        } else {
+          // Server-side error
+          switch (error.status) {
+            case 401:
+              this.router.navigate(['/login']);
+              errorMessage = 'Authentication required';
+              break;
+            case 403:
+              errorMessage = 'Access denied';
+              break;
+            case 404:
+              errorMessage = 'Resource not found';
+              break;
+            case 500:
+              errorMessage = 'Server error';
+              break;
+            default:
+              errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
+          }
+        }
+
+        this.errorService.showError(errorMessage);
+        return throwError(() => new Error(errorMessage));
+      })
+    );
+  }
+}
+```
+
+### Component-Level Error Handling
+```typescript
+// Recommended: Component error boundaries
+@Component({
+  selector: 'app-error-boundary',
+  template: `
+    <ng-container *ngIf="!hasError; else errorTemplate">
+      <ng-content></ng-content>
+    </ng-container>
+    <ng-template #errorTemplate>
+      <div class="error-container">
+        <h3>Something went wrong</h3>
+        <p>{{ errorMessage }}</p>
+        <button (click)="retry()">Retry</button>
+      </div>
+    </ng-template>
+  `
+})
+export class ErrorBoundaryComponent {
+  @Input() errorMessage = 'An unexpected error occurred';
+  @Output() retryRequest = new EventEmitter<void>();
+
+  hasError = false;
+
+  @HostListener('error')
+  onError(): void {
+    this.hasError = true;
+  }
+
+  retry(): void {
+    this.hasError = false;
+    this.retryRequest.emit();
+  }
+}
+```
+
+## Advanced Testing Patterns
+
+### Comprehensive Unit Testing
+```typescript
+// Recommended: Comprehensive component testing
+describe('UserComponent', () => {
+  let component: UserComponent;
+  let fixture: ComponentFixture<UserComponent>;
+  let userService: jasmine.SpyObj<UserService>;
+  let router: jasmine.SpyObj<Router>;
+
+  beforeEach(async () => {
+    const userServiceSpy = jasmine.createSpyObj('UserService', ['getUser', 'updateUser']);
+    const routerSpy = jasmine.createSpyObj('Router', ['navigate']);
+
+    await TestBed.configureTestingModule({
+      imports: [UserComponent],
+      providers: [
+        { provide: UserService, useValue: userServiceSpy },
+        { provide: Router, useValue: routerSpy }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UserComponent);
+    component = fixture.componentInstance;
+    userService = TestBed.inject(UserService) as jasmine.SpyObj<UserService>;
+    router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+  });
+
+  it('should load user data on init', () => {
+    const mockUser: User = { id: 1, name: 'Test User', email: 'test@example.com' };
+    userService.getUser.and.returnValue(of(mockUser));
+
+    component.ngOnInit();
+
+    expect(userService.getUser).toHaveBeenCalledWith(1);
+    expect(component.user).toEqual(mockUser);
+  });
+
+  it('should handle error when loading user', () => {
+    const error = new Error('User not found');
+    userService.getUser.and.returnValue(throwError(() => error));
+
+    component.ngOnInit();
+
+    expect(component.error).toBeTruthy();
+    expect(component.loading).toBeFalse();
+  });
+});
+```
+
+### Integration Testing Patterns
+```typescript
+// Recommended: Integration testing with TestBed
+describe('UserModule Integration', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [UserModule, HttpClientTestingModule],
+      providers: [
+        { provide: 'API_BASE_URL', useValue: 'http://localhost:3000' }
+      ]
+    }).compileComponents();
+  });
+
+  it('should handle complete user workflow', fakeAsync(() => {
+    const fixture = TestBed.createComponent(UserListComponent);
+    const component = fixture.componentInstance;
+
+    // Simulate user interaction
+    component.onUserSelect(1);
+    tick();
+
+    expect(component.selectedUser).toBeDefined();
+    expect(component.selectedUser?.id).toBe(1);
+  }));
+});
+```
+
+## Security Patterns
+
+### Input Validation and Sanitization
+```typescript
+// Recommended: Comprehensive input validation
+@Injectable({ providedIn: 'root' })
+export class ValidationService {
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  sanitizeInput(input: string): string {
+    return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  }
+
+  validateUserInput(userData: CreateUserRequest): ValidationResult {
+    const errors: string[] = [];
+
+    if (!this.validateEmail(userData.email)) {
+      errors.push('Invalid email format');
+    }
+
+    if (userData.name.length < 2) {
+      errors.push('Name must be at least 2 characters');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
+}
+```
+
+### XSS Prevention
+```typescript
+// Recommended: Safe content rendering
+@Component({
+  selector: 'app-safe-content',
+  template: `
+    <div [innerHTML]="sanitizedContent"></div>
+  `
+})
+export class SafeContentComponent {
+  @Input() set content(value: string) {
+    this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(value);
+  }
+
+  sanitizedContent: SafeHtml = '';
+
+  constructor(private sanitizer: DomSanitizer) {}
+}
+```
+
+## Accessibility Patterns
+
+### Advanced ARIA Implementation
+```typescript
+// Recommended: Comprehensive accessibility
+@Component({
+  selector: 'app-accessible-modal',
+  template: `
+    <div
+      class="modal-overlay"
+      role="dialog"
+      [attr.aria-labelledby]="titleId"
+      [attr.aria-describedby]="descriptionId"
+      [attr.aria-modal]="true"
+      (keydown.escape)="close()">
+
+      <div class="modal-content" role="document">
+        <h2 [id]="titleId">{{ title }}</h2>
+        <p [id]="descriptionId">{{ description }}</p>
+        <button (click)="close()" aria-label="Close modal">×</button>
+      </div>
+    </div>
+  `
+})
+export class AccessibleModalComponent {
+  @Input() title = '';
+  @Input() description = '';
+  @Output() closed = new EventEmitter<void>();
+
+  titleId = `modal-title-${Math.random().toString(36).substr(2, 9)}`;
+  descriptionId = `modal-description-${Math.random().toString(36).substr(2, 9)}`;
+
+  close(): void {
+    this.closed.emit();
+  }
+}
+```
+
+### Focus Management
+```typescript
+// Recommended: Proper focus management
+@Injectable({ providedIn: 'root' })
+export class FocusService {
+  private focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  trapFocus(element: HTMLElement): void {
+    const focusableContent = element.querySelectorAll(this.focusableElements);
+    const firstFocusableElement = focusableContent[0] as HTMLElement;
+    const lastFocusableElement = focusableContent[focusableContent.length - 1] as HTMLElement;
+
+    element.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        if (e.shiftKey) {
+          if (document.activeElement === firstFocusableElement) {
+            lastFocusableElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastFocusableElement) {
+            firstFocusableElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    });
+  }
+}
+```
+
+## Anti-Patterns to Avoid
+
+### Performance Anti-Patterns
+```typescript
+// ❌ Avoid: Complex calculations in templates
+template: `
+  <div *ngFor="let item of items">
+    {{ complexCalculation(item) }} <!-- Expensive operation in template -->
+  </div>
+`
+
+// ✅ Recommended: Use pure pipes or computed properties
+template: `
+  <div *ngFor="let item of items">
+    {{ item | complexCalculation }}
+  </div>
+`
+
+// ❌ Avoid: Manual subscription management without cleanup
+ngOnInit() {
+  this.dataService.getData().subscribe(data => {
+    this.data = data; // Memory leak potential
+  });
+}
+
+// ✅ Recommended: Proper cleanup
+ngOnInit() {
+  this.dataService.getData()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(data => {
+      this.data = data;
+    });
+}
+```
+
+### Type Safety Anti-Patterns
+```typescript
+// ❌ Avoid: Loose typing
+interface BadInterface {
+  data: any;
+  [key: string]: any;
+}
+
+// ✅ Recommended: Strict typing
+interface GoodInterface {
+  data: SpecificType;
+  metadata: Record<string, string>;
+}
+
+// ❌ Avoid: Ignoring TypeScript errors
+// @ts-ignore
+const result = someFunction();
+
+// ✅ Recommended: Proper type handling
+const result = someFunction() as ExpectedType;
+```
+
+### Architecture Anti-Patterns
+```typescript
+// ❌ Avoid: God components
+@Component({
+  template: `
+    <!-- 500+ lines of template with complex logic -->
+  `
+})
+export class GodComponent {
+  // 1000+ lines of component logic
+}
+
+// ✅ Recommended: Break into smaller components
+@Component({
+  template: `
+    <app-header></app-header>
+    <app-navigation></app-navigation>
+    <app-main-content></app-main-content>
+    <app-footer></app-footer>
+  `
+})
+export class MainComponent {
+  // Minimal logic, delegate to child components
+}
+```
+
+## Scalability Patterns
+
+### Module Organization
+```typescript
+// Recommended: Feature-based module organization
+@NgModule({
+  imports: [
+    CommonModule,
+    SharedModule,
+    UserRoutingModule
+  ],
+  declarations: [
+    UserListComponent,
+    UserDetailComponent,
+    UserFormComponent
+  ],
+  providers: [
+    UserService,
+    UserGuard
+  ]
+})
+export class UserModule { }
+
+// Shared module for common functionality
+@NgModule({
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule
+  ],
+  declarations: [
+    LoadingSpinnerComponent,
+    ErrorMessageComponent,
+    ConfirmDialogComponent
+  ],
+  exports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    LoadingSpinnerComponent,
+    ErrorMessageComponent,
+    ConfirmDialogComponent
+  ]
+})
+export class SharedModule { }
+```
+
+### Lazy Loading Patterns
+```typescript
+// Recommended: Proper lazy loading setup
+const routes: Routes = [
+  {
+    path: 'users',
+    loadChildren: () => import('./user/user.module').then(m => m.UserModule),
+    canActivate: [AuthGuard],
+    data: { preload: true }
+  },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule),
+    canActivate: [AuthGuard, AdminGuard]
+  }
+];
+
+// Preloading strategy
+@NgModule({
+  imports: [
+    RouterModule.forRoot(routes, {
+      preloadingStrategy: PreloadAllModules
+    })
+  ],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+```
+
+This comprehensive guide provides advanced patterns and anti-patterns for building scalable, maintainable Angular applications with proper TypeScript usage, performance optimization, and accessibility compliance.

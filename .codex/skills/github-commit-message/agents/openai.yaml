@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Commit Message"
+  short_description: "Draft commit messages from git changes"
+  default_prompt: "Draft a concise commit message based on current git changes."

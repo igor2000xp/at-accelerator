@@ -1,0 +1,7 @@
+{
+    "prettier.configPath": ".prettierrc",
+    "prettier.prettierPath": "./node_modules/prettier",
+    "marquee.widgets.npm-stats.packageNames": [
+        "at-accelerator"
+    ]
+}

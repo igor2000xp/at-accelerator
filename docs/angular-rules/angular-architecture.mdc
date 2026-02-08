@@ -1,0 +1,576 @@
+# Angular Architecture Rules
+
+## Source Attribution
+**Source**: [Context7 - Dan Wahlin Angular Architecture](https://context7.com/danwahlin/angular-architecture)
+**Author**: Dan Wahlin
+**Purpose**: Comprehensive architectural patterns for scalable Angular applications
+
+## Core Architectural Principles
+
+### 1. Layered Architecture Pattern
+```typescript
+// ✅ Recommended: Clear separation of concerns
+src/
+├── app/
+│   ├── core/                    # Singleton services, guards, interceptors
+│   │   ├── services/
+│   │   ├── guards/
+│   │   ├── interceptors/
+│   │   └── models/
+│   ├── shared/                  # Shared components, pipes, directives
+│   │   ├── components/
+│   │   ├── pipes/
+│   │   ├── directives/
+│   │   └── modules/
+│   ├── features/                # Feature modules
+│   │   ├── user-management/
+│   │   ├── product-catalog/
+│   │   └── reporting/
+│   └── app.component.ts
+```
+
+### 2. Feature-Based Module Organization
+```typescript
+// ✅ Feature module structure
+@NgModule({
+  imports: [
+    CommonModule,
+    SharedModule,
+    FeatureRoutingModule
+  ],
+  declarations: [
+    FeatureListComponent,
+    FeatureDetailComponent,
+    FeatureFormComponent
+  ],
+  providers: [
+    FeatureService,
+    FeatureGuard
+  ]
+})
+export class FeatureModule { }
+
+// ✅ Shared module for common functionality
+@NgModule({
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule
+  ],
+  declarations: [
+    LoadingSpinnerComponent,
+    ErrorMessageComponent,
+    ConfirmDialogComponent
+  ],
+  exports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    LoadingSpinnerComponent,
+    ErrorMessageComponent,
+    ConfirmDialogComponent
+  ]
+})
+export class SharedModule { }
+```
+
+### 3. Core Module Pattern
+```typescript
+// ✅ Core module for singleton services
+@NgModule({
+  imports: [
+    CommonModule,
+    HttpClientModule
+  ],
+  providers: [
+    // Singleton services
+    { provide: APP_INITIALIZER, useFactory: appInitializer, deps: [ConfigService], multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: LoggingInterceptor, multi: true }
+  ]
+})
+export class CoreModule {
+  constructor(@Optional() @SkipSelf() parentModule: CoreModule) {
+    if (parentModule) {
+      throw new Error('CoreModule is already loaded. Import it in the AppModule only.');
+    }
+  }
+}
+```
+
+## State Management Architecture
+
+### 1. Service-Based State Management
+```typescript
+// ✅ Service-based state for simple applications
+@Injectable({ providedIn: 'root' })
+export class AppStateService {
+  private state$ = new BehaviorSubject<AppState>(initialState);
+
+  getState(): Observable<AppState> {
+    return this.state$.asObservable();
+  }
+
+  updateState(updates: Partial<AppState>): void {
+    this.state$.next({ ...this.state$.value, ...updates });
+  }
+
+  select<K extends keyof AppState>(key: K): Observable<AppState[K]> {
+    return this.state$.pipe(
+      map(state => state[key]),
+      distinctUntilChanged()
+    );
+  }
+}
+```
+
+### 2. NgRx Architecture (for complex applications)
+```typescript
+// ✅ NgRx store structure
+export interface AppState {
+  user: UserState;
+  products: ProductState;
+  cart: CartState;
+}
+
+// ✅ Feature state
+export interface UserState {
+  users: User[];
+  selectedUser: User | null;
+  loading: boolean;
+  error: string | null;
+}
+
+// ✅ Actions
+export const loadUsers = createAction('[User] Load Users');
+export const loadUsersSuccess = createAction(
+  '[User] Load Users Success',
+  props<{ users: User[] }>()
+);
+export const loadUsersFailure = createAction(
+  '[User] Load Users Failure',
+  props<{ error: string }>()
+);
+
+// ✅ Effects
+@Injectable()
+export class UserEffects {
+  loadUsers$ = createEffect(() => this.actions$.pipe(
+    ofType(loadUsers),
+    mergeMap(() => this.userService.getUsers()
+      .pipe(
+        map(users => loadUsersSuccess({ users })),
+        catchError(error => of(loadUsersFailure({ error: error.message })))
+      ))
+  ));
+
+  constructor(
+    private actions$: Actions,
+    private userService: UserService
+  ) {}
+}
+```
+
+## Component Architecture
+
+### 1. Smart vs Presentational Components
+```typescript
+// ✅ Smart Component (Container)
+@Component({
+  selector: 'app-user-list',
+  template: `
+    <app-user-card
+      *ngFor="let user of users$ | async; trackBy: trackByUserId"
+      [user]="user"
+      (userSelected)="onUserSelected($event)">
+    </app-user-card>
+  `
+})
+export class UserListComponent {
+  users$ = this.userService.getUsers();
+
+  trackByUserId = (index: number, user: User): number => user.id;
+
+  onUserSelected(user: User): void {
+    this.router.navigate(['/users', user.id]);
+  }
+}
+
+// ✅ Presentational Component (Dumb)
+@Component({
+  selector: 'app-user-card',
+  template: `
+    <div class="user-card">
+      <h3>{{ user.name }}</h3>
+      <p>{{ user.email }}</p>
+      <button (click)="onSelect()">View Details</button>
+    </div>
+  `
+})
+export class UserCardComponent {
+  @Input() user!: User;
+  @Output() userSelected = new EventEmitter<User>();
+
+  onSelect(): void {
+    this.userSelected.emit(this.user);
+  }
+}
+```
+
+### 2. Component Communication Patterns
+```typescript
+// ✅ Parent-Child Communication
+@Component({
+  selector: 'app-parent',
+  template: `
+    <app-child
+      [data]="parentData"
+      (dataChanged)="handleDataChange($event)">
+    </app-child>
+  `
+})
+export class ParentComponent {
+  parentData = { id: 1, name: 'Parent Data' };
+
+  handleDataChange(newData: any): void {
+    // Handle data change from child
+  }
+}
+
+// ✅ Service-based Communication
+@Injectable({ providedIn: 'root' })
+export class CommunicationService {
+  private dataSubject = new Subject<any>();
+  data$ = this.dataSubject.asObservable();
+
+  sendData(data: any): void {
+    this.dataSubject.next(data);
+  }
+}
+```
+
+## Routing Architecture
+
+### 1. Feature-Based Routing
+```typescript
+// ✅ Feature routing module
+const routes: Routes = [
+  {
+    path: '',
+    component: FeatureListComponent,
+    canActivate: [FeatureGuard]
+  },
+  {
+    path: ':id',
+    component: FeatureDetailComponent,
+    resolve: {
+      feature: FeatureResolver
+    }
+  },
+  {
+    path: 'new',
+    component: FeatureFormComponent,
+    canDeactivate: [FeatureFormGuard]
+  }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class FeatureRoutingModule { }
+```
+
+### 2. Lazy Loading Strategy
+```typescript
+// ✅ Lazy loading configuration
+const routes: Routes = [
+  {
+    path: 'users',
+    loadChildren: () => import('./user/user.module').then(m => m.UserModule),
+    canActivate: [AuthGuard],
+    data: { preload: true }
+  },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule),
+    canActivate: [AuthGuard, AdminGuard]
+  }
+];
+
+// ✅ Custom preloading strategy
+@Injectable()
+export class CustomPreloadingStrategy implements PreloadingStrategy {
+  preload(route: Route, load: () => Observable<any>): Observable<any> {
+    if (route.data && route.data['preload']) {
+      return load();
+    }
+    return of(null);
+  }
+}
+```
+
+## Service Architecture
+
+### 1. Service Layer Pattern
+```typescript
+// ✅ Base service for common operations
+@Injectable()
+export abstract class BaseService<T> {
+  protected abstract endpoint: string;
+
+  constructor(protected http: HttpClient) {}
+
+  getAll(): Observable<T[]> {
+    return this.http.get<T[]>(this.endpoint);
+  }
+
+  getById(id: number): Observable<T> {
+    return this.http.get<T>(`${this.endpoint}/${id}`);
+  }
+
+  create(item: Omit<T, 'id'>): Observable<T> {
+    return this.http.post<T>(this.endpoint, item);
+  }
+
+  update(id: number, item: Partial<T>): Observable<T> {
+    return this.http.patch<T>(`${this.endpoint}/${id}`, item);
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.endpoint}/${id}`);
+  }
+}
+
+// ✅ Specific service implementation
+@Injectable({ providedIn: 'root' })
+export class UserService extends BaseService<User> {
+  protected endpoint = '/api/users';
+
+  constructor(http: HttpClient) {
+    super(http);
+  }
+
+  // Additional user-specific methods
+  getUsersByRole(role: string): Observable<User[]> {
+    return this.http.get<User[]>(`${this.endpoint}?role=${role}`);
+  }
+}
+```
+
+### 2. Interceptor Architecture
+```typescript
+// ✅ Authentication interceptor
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const token = this.authService.getToken();
+
+    if (token) {
+      req = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    }
+
+    return next.handle(req);
+  }
+}
+
+// ✅ Error handling interceptor
+@Injectable()
+export class ErrorInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    return next.handle(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          this.authService.logout();
+          this.router.navigate(['/login']);
+        }
+
+        const errorMessage = this.getErrorMessage(error);
+        this.notificationService.showError(errorMessage);
+
+        return throwError(() => error);
+      })
+    );
+  }
+}
+```
+
+## Performance Architecture
+
+### 1. Change Detection Strategy
+```typescript
+// ✅ OnPush change detection
+@Component({
+  selector: 'app-optimized',
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class OptimizedComponent {
+  @Input() data!: Data[];
+  @Output() dataChange = new EventEmitter<Data[]>();
+
+  // Use immutable updates
+  updateData(newData: Data): void {
+    const updatedData = this.data.map(item =>
+      item.id === newData.id ? newData : item
+    );
+    this.dataChange.emit(updatedData);
+  }
+}
+```
+
+### 2. Virtual Scrolling for Large Lists
+```typescript
+// ✅ Virtual scrolling implementation
+@Component({
+  selector: 'app-virtual-list',
+  template: `
+    <cdk-virtual-scroll-viewport itemSize="50" class="viewport">
+      <div *cdkVirtualFor="let item of items; trackBy: trackByFn">
+        {{ item.name }}
+      </div>
+    </cdk-virtual-scroll-viewport>
+  `
+})
+export class VirtualListComponent {
+  items = Array.from({ length: 10000 }, (_, i) => ({ id: i, name: `Item ${i}` }));
+
+  trackByFn = (index: number, item: any): number => item.id;
+}
+```
+
+## Testing Architecture
+
+### 1. Unit Testing Strategy
+```typescript
+// ✅ Component testing
+describe('UserComponent', () => {
+  let component: UserComponent;
+  let fixture: ComponentFixture<UserComponent>;
+  let userService: jasmine.SpyObj<UserService>;
+
+  beforeEach(async () => {
+    const userServiceSpy = jasmine.createSpyObj('UserService', ['getUser']);
+
+    await TestBed.configureTestingModule({
+      imports: [UserComponent],
+      providers: [
+        { provide: UserService, useValue: userServiceSpy }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(UserComponent);
+    component = fixture.componentInstance;
+    userService = TestBed.inject(UserService) as jasmine.SpyObj<UserService>;
+  });
+
+  it('should load user data on init', () => {
+    const mockUser = { id: 1, name: 'Test User' };
+    userService.getUser.and.returnValue(of(mockUser));
+
+    component.ngOnInit();
+
+    expect(userService.getUser).toHaveBeenCalledWith(1);
+    expect(component.user).toEqual(mockUser);
+  });
+});
+```
+
+### 2. Integration Testing
+```typescript
+// ✅ Integration testing
+describe('UserModule Integration', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [UserModule, HttpClientTestingModule]
+    }).compileComponents();
+  });
+
+  it('should handle complete user workflow', fakeAsync(() => {
+    const fixture = TestBed.createComponent(UserListComponent);
+    const component = fixture.componentInstance;
+
+    component.onUserSelect(1);
+    tick();
+
+    expect(component.selectedUser).toBeDefined();
+  }));
+});
+```
+
+## Security Architecture
+
+### 1. Authentication and Authorization
+```typescript
+// ✅ Route guards
+@Injectable({ providedIn: 'root' })
+export class AuthGuard implements CanActivate {
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+    if (this.authService.isAuthenticated()) {
+      return true;
+    }
+
+    this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+    return false;
+  }
+}
+
+// ✅ Role-based authorization
+@Injectable({ providedIn: 'root' })
+export class RoleGuard implements CanActivate {
+  canActivate(route: ActivatedRouteSnapshot): boolean {
+    const requiredRoles = route.data['roles'] as string[];
+    const userRoles = this.authService.getUserRoles();
+
+    return requiredRoles.some(role => userRoles.includes(role));
+  }
+}
+```
+
+### 2. Input Validation and Sanitization
+```typescript
+// ✅ Input validation service
+@Injectable({ providedIn: 'root' })
+export class ValidationService {
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  sanitizeInput(input: string): string {
+    return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  }
+}
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use layered architecture with clear separation of concerns
+- Implement feature-based module organization
+- Use OnPush change detection for performance
+- Implement proper error handling and logging
+- Use lazy loading for large applications
+- Follow single responsibility principle
+- Implement comprehensive testing strategy
+- Use proper dependency injection patterns
+
+### Don'ts ❌
+- Create monolithic components
+- Mix business logic with presentation logic
+- Ignore performance considerations
+- Skip error handling
+- Use manual change detection unnecessarily
+- Create circular dependencies
+- Forget to implement proper security measures
+- Over-engineer simple applications
+
+This architectural approach ensures scalable, maintainable, and performant Angular applications following industry best practices.
+description:
+globs:
+alwaysApply: false
+---

@@ -1,0 +1,6 @@
+---
+description: 
+globs: **/*.ts
+alwaysApply: false
+---
+- This project uses Angular with standalone components, do not assume a module file is present.

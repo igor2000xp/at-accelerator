@@ -1,0 +1,116 @@
+# Core LLM Guidelines for Angular Development
+
+## Angular Best Practices
+
+### Component Patterns
+- Use standalone components with `standalone: true`
+- Implement OnPush change detection for performance
+- Use proper lifecycle hooks (OnInit, OnDestroy, OnChanges)
+- Keep components focused and single-responsibility
+- Use proper selector naming: `app-component-name`
+
+### Service Patterns
+- Use `@Injectable({ providedIn: 'root' })` for singleton services
+- Implement proper error handling with RxJS operators
+- Use dependency injection for all dependencies
+- Clean up subscriptions in OnDestroy
+- Use TypeScript interfaces for service contracts
+
+### Template Best Practices
+- Use async pipe for observables when possible
+- Implement trackBy functions for *ngFor loops
+- Keep template expressions simple and pure
+- Use structural directives (*ngIf, *ngFor) appropriately
+- Avoid complex logic in templates
+
+## TypeScript Guidelines
+
+### Type Safety
+- Use strict TypeScript configuration
+- Prefer interfaces over types for object shapes
+- Use utility types (Partial, Pick, Omit, Required)
+- Avoid `any` type - use `unknown` when type is truly unknown
+- Use proper generic constraints
+
+### Code Organization
+- One class per file
+- Use barrel exports for clean imports
+- Follow Angular style guide naming conventions
+- Use proper import/export statements
+- Group related functionality logically
+
+## Performance Considerations
+
+### Change Detection
+- Use OnPush strategy for components
+- Minimize template expressions
+- Use pure pipes for data transformation
+- Avoid complex calculations in templates
+- Use trackBy for list rendering
+
+### Memory Management
+- Always implement OnDestroy for cleanup
+- Use takeUntil pattern for subscription management
+- Avoid memory leaks in event listeners
+- Use proper disposal patterns for resources
+
+## Accessibility Requirements
+
+### Basic Accessibility
+- Use semantic HTML elements
+- Provide proper ARIA attributes
+- Ensure keyboard navigation support
+- Use proper color contrast ratios
+- Provide alternative text for images
+
+### Angular-Specific Accessibility
+- Use Angular CDK for accessible components
+- Implement proper focus management
+- Ensure form labels are associated
+- Use proper heading hierarchy
+
+## Testing Guidelines
+
+### Unit Testing
+- Test components in isolation
+- Mock dependencies properly
+- Test both success and error scenarios
+- Use TestBed for Angular testing
+- Maintain high test coverage
+
+### Integration Testing
+- Test component interactions
+- Test routing and navigation
+- Test form validation
+- Test error handling flows
+
+## Error Handling
+
+### Global Error Handling
+- Use global error interceptor
+- Provide user-friendly error messages
+- Log errors appropriately
+- Handle network errors gracefully
+- Implement retry mechanisms
+
+### Component Error Handling
+- Use try-catch blocks where appropriate
+- Handle async operation errors
+- Provide fallback UI for errors
+- Use error boundaries when needed
+
+## Code Quality
+
+### Linting and Formatting
+- Use ESLint with Angular rules
+- Use Prettier for consistent formatting
+- Follow consistent naming conventions
+- Use proper JSDoc comments
+- Maintain clean, readable code
+
+### Security Considerations
+- Sanitize user inputs
+- Use Angular's built-in XSS protection
+- Validate data on both client and server
+- Use HTTPS in production
+- Follow OWASP guidelines

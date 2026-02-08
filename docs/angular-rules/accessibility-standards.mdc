@@ -1,0 +1,710 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Accessibility Standards for Angular Development
+
+## WCAG 2.1 AA Compliance Guidelines
+
+### Perceivable - Information and user interface components must be presentable to users in ways they can perceive
+
+#### Text Alternatives
+```html
+<!-- ✅ Provide alternative text for images -->
+<img src="logo.png" alt="Company Logo" />
+
+<!-- ✅ Decorative images should have empty alt -->
+<img src="decoration.png" alt="" role="presentation" />
+
+<!-- ✅ Complex images need descriptive alt text -->
+<img src="chart.png" alt="Bar chart showing sales data: Q1 $50K, Q2 $75K, Q3 $60K, Q4 $90K" />
+
+<!-- ❌ Avoid: Missing alt attributes -->
+<img src="logo.png" />
+```
+
+#### Color and Contrast
+```scss
+// ✅ Ensure sufficient color contrast (4.5:1 minimum for normal text)
+.primary-text {
+  color: #333333; // Dark gray on white background (contrast ratio: 21:1)
+  background-color: #ffffff;
+}
+
+// ✅ High contrast for important elements
+.important-button {
+  color: #ffffff;
+  background-color: #d32f2f; // Red button with white text (contrast ratio: 4.5:1)
+}
+
+// ❌ Avoid: Low contrast combinations
+.low-contrast {
+  color: #cccccc; // Light gray on white (contrast ratio: 1.6:1)
+  background-color: #ffffff;
+}
+```
+
+#### Keyboard Navigation
+```typescript
+// ✅ Ensure all interactive elements are keyboard accessible
+@Component({
+  selector: 'app-accessible-button',
+  template: `
+    <button
+      (click)="onClick()"
+      (keydown.enter)="onClick()"
+      (keydown.space)="onClick()"
+      [attr.aria-label]="ariaLabel"
+      tabindex="0">
+      {{ label }}
+    </button>
+  `
+})
+export class AccessibleButtonComponent {
+  @Input() label = '';
+  @Input() ariaLabel = '';
+  @Output() clicked = new EventEmitter<void>();
+
+  onClick(): void {
+    this.clicked.emit();
+  }
+}
+```
+
+### Operable - User interface components and navigation must be operable
+
+#### Keyboard Accessibility
+```typescript
+// ✅ Implement keyboard navigation for custom components
+@Component({
+  selector: 'app-accessible-dropdown',
+  template: `
+    <div class="dropdown" role="combobox" [attr.aria-expanded]="isOpen">
+      <button
+        (click)="toggle()"
+        (keydown.arrowdown)="open()"
+        (keydown.escape)="close()"
+        [attr.aria-haspopup]="true"
+        [attr.aria-controls]="listId">
+        {{ selectedOption || placeholder }}
+      </button>
+
+      <ul
+        [id]="listId"
+        *ngIf="isOpen"
+        role="listbox"
+        (keydown.arrowdown)="nextOption()"
+        (keydown.arrowup)="previousOption()"
+        (keydown.enter)="selectOption()"
+        (keydown.escape)="close()">
+        <li
+          *ngFor="let option of options; let i = index"
+          [attr.aria-selected]="i === selectedIndex"
+          role="option"
+          (click)="selectOption(i)">
+          {{ option }}
+        </li>
+      </ul>
+    </div>
+  `
+})
+export class AccessibleDropdownComponent {
+  @Input() options: string[] = [];
+  @Input() placeholder = 'Select an option';
+  @Output() selectionChanged = new EventEmitter<string>();
+
+  isOpen = false;
+  selectedIndex = -1;
+  selectedOption = '';
+  listId = `dropdown-${Math.random().toString(36).substr(2, 9)}`;
+
+  toggle(): void {
+    this.isOpen = !this.isOpen;
+  }
+
+  open(): void {
+    this.isOpen = true;
+  }
+
+  close(): void {
+    this.isOpen = false;
+  }
+
+  nextOption(): void {
+    if (this.selectedIndex < this.options.length - 1) {
+      this.selectedIndex++;
+    }
+  }
+
+  previousOption(): void {
+    if (this.selectedIndex > 0) {
+      this.selectedIndex--;
+    }
+  }
+
+  selectOption(index?: number): void {
+    const selectedIndex = index ?? this.selectedIndex;
+    if (selectedIndex >= 0 && selectedIndex < this.options.length) {
+      this.selectedOption = this.options[selectedIndex];
+      this.selectionChanged.emit(this.selectedOption);
+      this.close();
+    }
+  }
+}
+```
+
+#### Focus Management
+```typescript
+// ✅ Implement proper focus management
+@Injectable({ providedIn: 'root' })
+export class FocusService {
+  private focusableElements = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+  trapFocus(element: HTMLElement): void {
+    const focusableContent = element.querySelectorAll(this.focusableElements);
+    const firstFocusableElement = focusableContent[0] as HTMLElement;
+    const lastFocusableElement = focusableContent[focusableContent.length - 1] as HTMLElement;
+
+    element.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        if (e.shiftKey) {
+          if (document.activeElement === firstFocusableElement) {
+            lastFocusableElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastFocusableElement) {
+            firstFocusableElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    });
+  }
+
+  returnFocus(element: HTMLElement): void {
+    element.focus();
+  }
+
+  hideFromScreenReaders(element: HTMLElement): void {
+    element.setAttribute('aria-hidden', 'true');
+  }
+
+  showToScreenReaders(element: HTMLElement): void {
+    element.removeAttribute('aria-hidden');
+  }
+}
+```
+
+### Understandable - Information and operation of user interface must be understandable
+
+#### Form Accessibility
+```typescript
+// ✅ Accessible form implementation
+@Component({
+  selector: 'app-accessible-form',
+  template: `
+    <form (ngSubmit)="onSubmit()" #form="ngForm">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          [(ngModel)]="user.name"
+          required
+          [attr.aria-describedby]="nameErrorId"
+          [attr.aria-invalid]="form.controls['name']?.invalid && form.controls['name']?.touched">
+
+        <div
+          [id]="nameErrorId"
+          *ngIf="form.controls['name']?.invalid && form.controls['name']?.touched"
+          class="error-message"
+          role="alert">
+          <span *ngIf="form.controls['name']?.errors?.['required']">
+            Name is required
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          [(ngModel)]="user.email"
+          required
+          [attr.aria-describedby]="emailErrorId"
+          [attr.aria-invalid]="form.controls['email']?.invalid && form.controls['email']?.touched">
+
+        <div
+          [id]="emailErrorId"
+          *ngIf="form.controls['email']?.invalid && form.controls['email']?.touched"
+          class="error-message"
+          role="alert">
+          <span *ngIf="form.controls['email']?.errors?.['required']">
+            Email is required
+          </span>
+          <span *ngIf="form.controls['email']?.errors?.['email']">
+            Please enter a valid email address
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" [disabled]="form.invalid">
+        Submit
+      </button>
+    </form>
+  `
+})
+export class AccessibleFormComponent {
+  user = { name: '', email: '' };
+  nameErrorId = `name-error-${Math.random().toString(36).substr(2, 9)}`;
+  emailErrorId = `email-error-${Math.random().toString(36).substr(2, 9)}`;
+
+  onSubmit(): void {
+    // Handle form submission
+  }
+}
+```
+
+#### Error Handling
+```typescript
+// ✅ Accessible error handling
+@Component({
+  selector: 'app-error-boundary',
+  template: `
+    <ng-container *ngIf="!hasError; else errorTemplate">
+      <ng-content></ng-content>
+    </ng-container>
+    <ng-template #errorTemplate>
+      <div
+        class="error-container"
+        role="alert"
+        [attr.aria-live]="'polite'">
+        <h3>Something went wrong</h3>
+        <p>{{ errorMessage }}</p>
+        <button (click)="retry()" aria-label="Retry the operation">
+          Retry
+        </button>
+      </div>
+    </ng-template>
+  `
+})
+export class ErrorBoundaryComponent {
+  @Input() errorMessage = 'An unexpected error occurred';
+  @Output() retryRequest = new EventEmitter<void>();
+
+  hasError = false;
+
+  @HostListener('error')
+  onError(): void {
+    this.hasError = true;
+  }
+
+  retry(): void {
+    this.hasError = false;
+    this.retryRequest.emit();
+  }
+}
+```
+
+### Robust - Content must be robust enough to be interpreted by a wide variety of user agents
+
+#### Semantic HTML
+```html
+<!-- ✅ Use semantic HTML elements -->
+<header>
+  <nav role="navigation" aria-label="Main navigation">
+    <ul>
+      <li><a href="/home">Home</a></li>
+      <li><a href="/about">About</a></li>
+      <li><a href="/contact">Contact</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <section aria-labelledby="section-title">
+    <h1 id="section-title">Welcome to our application</h1>
+    <article>
+      <h2>Latest News</h2>
+      <p>Content here...</p>
+    </article>
+  </section>
+</main>
+
+<footer>
+  <p>&copy; 2024 Company Name. All rights reserved.</p>
+</footer>
+```
+
+#### ARIA Attributes
+```typescript
+// ✅ Proper ARIA implementation
+@Component({
+  selector: 'app-accessible-modal',
+  template: `
+    <div
+      class="modal-overlay"
+      role="dialog"
+      [attr.aria-labelledby]="titleId"
+      [attr.aria-describedby]="descriptionId"
+      [attr.aria-modal]="true"
+      (keydown.escape)="close()"
+      (click)="onOverlayClick($event)">
+
+      <div class="modal-content" role="document">
+        <h2 [id]="titleId">{{ title }}</h2>
+        <p [id]="descriptionId">{{ description }}</p>
+
+        <button
+          (click)="close()"
+          aria-label="Close modal"
+          class="close-button">
+          ×
+        </button>
+
+        <div class="modal-actions">
+          <button (click)="confirm()" class="primary-button">
+            Confirm
+          </button>
+          <button (click)="cancel()" class="secondary-button">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+})
+export class AccessibleModalComponent {
+  @Input() title = '';
+  @Input() description = '';
+  @Output() confirmed = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
+  @Output() closed = new EventEmitter<void>();
+
+  titleId = `modal-title-${Math.random().toString(36).substr(2, 9)}`;
+  descriptionId = `modal-description-${Math.random().toString(36).substr(2, 9)}`;
+
+  close(): void {
+    this.closed.emit();
+  }
+
+  confirm(): void {
+    this.confirmed.emit();
+    this.close();
+  }
+
+  cancel(): void {
+    this.cancelled.emit();
+    this.close();
+  }
+
+  onOverlayClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.close();
+    }
+  }
+}
+```
+
+## Angular-Specific Accessibility Patterns
+
+### Angular CDK Integration
+```typescript
+// ✅ Use Angular CDK for accessible components
+import { A11yModule } from '@angular/cdk/a11y';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
+
+@Component({
+  selector: 'app-accessible-list',
+  template: `
+    <div
+      cdkTrapFocus
+      class="list-container"
+      role="listbox"
+      [attr.aria-label]="'Select an item from the list'">
+
+      <div
+        *ngFor="let item of items; let i = index"
+        class="list-item"
+        role="option"
+        [attr.aria-selected]="i === selectedIndex"
+        [attr.aria-setsize]="items.length"
+        [attr.aria-posinset]="i + 1"
+        (click)="selectItem(i)"
+        (keydown.enter)="selectItem(i)"
+        (keydown.space)="selectItem(i)"
+        tabindex="0">
+        {{ item.name }}
+      </div>
+    </div>
+  `
+})
+export class AccessibleListComponent {
+  @Input() items: ListItem[] = [];
+  @Output() itemSelected = new EventEmitter<ListItem>();
+
+  selectedIndex = -1;
+
+  constructor(private liveAnnouncer: LiveAnnouncer) {}
+
+  selectItem(index: number): void {
+    this.selectedIndex = index;
+    const selectedItem = this.items[index];
+    this.itemSelected.emit(selectedItem);
+
+    // Announce selection to screen readers
+    this.liveAnnouncer.announce(`Selected ${selectedItem.name}`);
+  }
+}
+```
+
+### Reactive Forms Accessibility
+```typescript
+// ✅ Accessible reactive forms
+@Component({
+  selector: 'app-accessible-reactive-form',
+  template: `
+    <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+      <div class="form-field">
+        <label for="username">Username</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          [attr.aria-describedby]="usernameHelpId"
+          [attr.aria-invalid]="isFieldInvalid('username')"
+          [attr.aria-required]="true">
+
+        <div
+          [id]="usernameHelpId"
+          class="help-text">
+          Username must be at least 3 characters long
+        </div>
+
+        <div
+          *ngIf="isFieldInvalid('username')"
+          class="error-message"
+          role="alert">
+          <span *ngIf="userForm.get('username')?.errors?.['required']">
+            Username is required
+          </span>
+          <span *ngIf="userForm.get('username')?.errors?.['minlength']">
+            Username must be at least 3 characters
+          </span>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          [attr.aria-describedby]="passwordHelpId"
+          [attr.aria-invalid]="isFieldInvalid('password')"
+          [attr.aria-required]="true">
+
+        <div
+          [id]="passwordHelpId"
+          class="help-text">
+          Password must be at least 8 characters with uppercase, lowercase, and number
+        </div>
+
+        <button
+          type="button"
+          (click)="togglePasswordVisibility()"
+          aria-label="Toggle password visibility">
+          {{ showPassword ? 'Hide' : 'Show' }}
+        </button>
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="userForm.invalid"
+        aria-label="Create account">
+        Create Account
+      </button>
+    </form>
+  `
+})
+export class AccessibleReactiveFormComponent {
+  userForm: FormGroup;
+  showPassword = false;
+  usernameHelpId = `username-help-${Math.random().toString(36).substr(2, 9)}`;
+  passwordHelpId = `password-help-${Math.random().toString(36).substr(2, 9)}`;
+
+  constructor(private fb: FormBuilder) {
+    this.userForm = this.fb.group({
+      username: ['', [Validators.required, Validators.minLength(3)]],
+      password: ['', [Validators.required, Validators.minLength(8), this.passwordValidator()]]
+    });
+  }
+
+  isFieldInvalid(fieldName: string): boolean {
+    const field = this.userForm.get(fieldName);
+    return field ? field.invalid && field.touched : false;
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+    const passwordField = this.userForm.get('password');
+    if (passwordField) {
+      passwordField.setValue(passwordField.value);
+    }
+  }
+
+  private passwordValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const password = control.value;
+      if (!password) return null;
+
+      const hasUpperCase = /[A-Z]/.test(password);
+      const hasLowerCase = /[a-z]/.test(password);
+      const hasNumber = /\d/.test(password);
+
+      if (!hasUpperCase || !hasLowerCase || !hasNumber) {
+        return { passwordStrength: true };
+      }
+
+      return null;
+    };
+  }
+
+  onSubmit(): void {
+    if (this.userForm.valid) {
+      // Handle form submission
+    }
+  }
+}
+```
+
+## Testing Accessibility
+
+### Accessibility Testing
+```typescript
+// ✅ Accessibility testing with axe-core
+import { axe, toHaveNoViolations } from 'jest-axe';
+
+describe('Accessibility Tests', () => {
+  it('should not have accessibility violations', async () => {
+    const fixture = TestBed.createComponent(UserProfileComponent);
+    fixture.detectChanges();
+
+    const results = await axe(fixture.nativeElement);
+    expect(results).toHaveNoViolations();
+  });
+
+  it('should have proper heading structure', () => {
+    const fixture = TestBed.createComponent(UserProfileComponent);
+    fixture.detectChanges();
+
+    const headings = fixture.nativeElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    expect(headings.length).toBeGreaterThan(0);
+
+    // Check for proper heading hierarchy
+    const headingLevels = Array.from(headings).map(h => parseInt(h.tagName.charAt(1)));
+    for (let i = 1; i < headingLevels.length; i++) {
+      expect(headingLevels[i] - headingLevels[i - 1]).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('should have proper form labels', () => {
+    const fixture = TestBed.createComponent(UserProfileComponent);
+    fixture.detectChanges();
+
+    const inputs = fixture.nativeElement.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      const id = input.getAttribute('id');
+      if (id) {
+        const label = fixture.nativeElement.querySelector(`label[for="${id}"]`);
+        expect(label).toBeTruthy();
+      }
+    });
+  });
+});
+```
+
+### Keyboard Navigation Testing
+```typescript
+// ✅ Keyboard navigation testing
+describe('Keyboard Navigation', () => {
+  it('should navigate through form fields with Tab key', () => {
+    const fixture = TestBed.createComponent(UserProfileComponent);
+    fixture.detectChanges();
+
+    const inputs = fixture.nativeElement.querySelectorAll('input, select, textarea, button');
+    const firstInput = inputs[0] as HTMLElement;
+    const lastInput = inputs[inputs.length - 1] as HTMLElement;
+
+    // Focus first element
+    firstInput.focus();
+    expect(document.activeElement).toBe(firstInput);
+
+    // Tab through elements
+    for (let i = 1; i < inputs.length; i++) {
+      const event = new KeyboardEvent('keydown', { key: 'Tab' });
+      document.activeElement?.dispatchEvent(event);
+      expect(document.activeElement).toBe(inputs[i]);
+    }
+  });
+
+  it('should handle Enter key on buttons', () => {
+    const fixture = TestBed.createComponent(UserProfileComponent);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button[type="submit"]');
+    const clickSpy = spyOn(button, 'click');
+
+    button.focus();
+    const event = new KeyboardEvent('keydown', { key: 'Enter' });
+    button.dispatchEvent(event);
+
+    expect(clickSpy).toHaveBeenCalled();
+  });
+});
+```
+
+## Best Practices Summary
+
+### Do's ✅
+- Use semantic HTML elements
+- Provide alternative text for images
+- Ensure sufficient color contrast (4.5:1 minimum)
+- Implement keyboard navigation
+- Use proper ARIA attributes
+- Test with screen readers
+- Provide focus indicators
+- Use descriptive link text
+- Implement proper form labels
+- Handle errors accessibly
+
+### Don'ts ❌
+- Rely solely on color to convey information
+- Use images without alt text
+- Create keyboard traps
+- Use generic link text ("click here")
+- Skip heading levels
+- Use tables for layout
+- Auto-play media without controls
+- Use low contrast text
+- Ignore screen reader announcements
+- Create inaccessible custom components
+
+### Testing Checklist
+- [ ] All images have appropriate alt text
+- [ ] Color contrast meets WCAG AA standards
+- [ ] All interactive elements are keyboard accessible
+- [ ] Forms have proper labels and error messages
+- [ ] Heading structure is logical
+- [ ] ARIA attributes are used correctly
+- [ ] Focus management works properly
+- [ ] Screen reader compatibility verified
+- [ ] No keyboard traps exist
+- [ ] Error messages are announced to screen readers
+
+This comprehensive guide ensures your Angular applications meet WCAG 2.1 AA standards and provide an excellent experience for all users, including those using assistive technologies.
