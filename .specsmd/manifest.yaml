@@ -1,0 +1,6 @@
+flow: aidlc
+version: 0.1.22
+installed_at: '2026-02-08T00:08:16.517Z'
+tools:
+  - cursor
+  - codex
